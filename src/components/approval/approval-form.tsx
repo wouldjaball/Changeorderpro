@@ -143,7 +143,7 @@ export function ApprovalForm({
           </Button>
         </div>
 
-        <p className="text-xs text-center text-muted-foreground">
+        <p className="text-sm text-center text-muted-foreground">
           By approving, you authorize the work described above at the stated
           price. This action is logged and timestamped.
         </p>

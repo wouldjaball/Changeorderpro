@@ -126,7 +126,7 @@ export default async function ApprovalPage({
         <Card>
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
-              <Badge variant="outline" className="text-xs">
+              <Badge variant="outline" className="text-sm">
                 {co.co_number}
               </Badge>
               <Badge variant="secondary" className="bg-blue-100 text-blue-800">
@@ -135,7 +135,7 @@ export default async function ApprovalPage({
             </div>
             <CardTitle className="text-lg mt-2">{co.title}</CardTitle>
             {project?.name && (
-              <p className="text-sm text-muted-foreground">
+              <p className="text-base text-muted-foreground">
                 Project: {project.name}
               </p>
             )}
@@ -145,8 +145,8 @@ export default async function ApprovalPage({
             {/* Description */}
             {co.description && (
               <div>
-                <p className="text-sm font-medium mb-1">Description</p>
-                <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                <p className="text-base font-medium mb-1">Description</p>
+                <p className="text-base text-muted-foreground whitespace-pre-wrap">
                   {co.description}
                 </p>
               </div>
@@ -154,10 +154,10 @@ export default async function ApprovalPage({
 
             {/* Pricing */}
             <div>
-              <p className="text-sm font-medium mb-2">Pricing</p>
+              <p className="text-base font-medium mb-2">Pricing</p>
               <div className="bg-muted/50 rounded-lg p-3 space-y-2">
                 {co.fixed_amount && co.pricing_type !== "tm" && (
-                  <div className="flex justify-between text-sm">
+                  <div className="flex justify-between text-base">
                     <span>Fixed amount</span>
                     <span>${Number(co.fixed_amount).toLocaleString()}</span>
                   </div>
@@ -165,10 +165,10 @@ export default async function ApprovalPage({
                 {lineItems && lineItems.length > 0 && (
                   <>
                     {lineItems.map((item) => (
-                      <div key={item.id} className="flex justify-between text-sm">
+                      <div key={item.id} className="flex justify-between text-base">
                         <div>
                           <span>{item.description}</span>
-                          <span className="text-xs text-muted-foreground ml-1">
+                          <span className="text-sm text-muted-foreground ml-1">
                             ({item.quantity} {item.unit} @ ${Number(item.rate).toFixed(2)})
                           </span>
                         </div>
@@ -185,7 +185,7 @@ export default async function ApprovalPage({
                   </span>
                 </div>
                 {co.pricing_type === "tm" && (
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-sm text-muted-foreground">
                     * Estimate based on projected hours. Final invoice will reflect actual time and materials.
                   </p>
                 )}
@@ -195,7 +195,7 @@ export default async function ApprovalPage({
             {/* Photos */}
             {photos && photos.length > 0 && (
               <div>
-                <p className="text-sm font-medium mb-2">Photos</p>
+                <p className="text-base font-medium mb-2">Photos</p>
                 <div className="grid grid-cols-2 gap-2">
                   {photos.map((photo) => (
                     <div
@@ -218,10 +218,10 @@ export default async function ApprovalPage({
             {/* Terms */}
             {termsText && (
               <div>
-                <p className="text-xs font-medium text-muted-foreground mb-1">
+                <p className="text-sm font-medium text-muted-foreground mb-1">
                   Terms & Conditions
                 </p>
-                <p className="text-xs text-muted-foreground whitespace-pre-wrap">
+                <p className="text-sm text-muted-foreground whitespace-pre-wrap">
                   {termsText}
                 </p>
               </div>
@@ -238,7 +238,7 @@ export default async function ApprovalPage({
           amount={amount}
         />
 
-        <p className="text-xs text-center text-muted-foreground">
+        <p className="text-sm text-center text-muted-foreground">
           Powered by ChangeOrder Pro
         </p>
       </div>

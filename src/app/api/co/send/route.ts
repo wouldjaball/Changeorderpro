@@ -42,9 +42,9 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  if (co.status !== "draft" && co.status !== "declined") {
+  if (!["draft", "declined", "sent"].includes(co.status)) {
     return NextResponse.json(
-      { error: "Change order has already been sent" },
+      { error: "Change order cannot be resent in its current status" },
       { status: 400 }
     );
   }

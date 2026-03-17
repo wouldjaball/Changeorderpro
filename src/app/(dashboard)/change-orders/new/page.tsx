@@ -311,7 +311,7 @@ export default function NewChangeOrderPage() {
             <div className="space-y-2">
               <Label>Project *</Label>
               {projects.length === 0 ? (
-                <div className="rounded-lg border border-dashed p-4 text-center text-sm text-muted-foreground">
+                <div className="rounded-lg border border-dashed p-4 text-center text-base text-muted-foreground">
                   <p>No projects yet. Create one first.</p>
                   <Button
                     type="button"
@@ -328,7 +328,7 @@ export default function NewChangeOrderPage() {
                 <div className="flex gap-2">
                   <Select value={projectId} onValueChange={(v) => setProjectId(v ?? "")}>
                     <SelectTrigger className="flex-1">
-                      <span className="flex flex-1 text-left line-clamp-1 text-sm">
+                      <span className="flex flex-1 text-left line-clamp-1 text-base">
                         {projectId
                           ? projects.find((p) => p.id === projectId)?.name ?? "Select a project"
                           : <span className="text-muted-foreground">Select a project</span>}
@@ -384,7 +384,7 @@ export default function NewChangeOrderPage() {
                   size="sm"
                   onClick={handleAIEnhance}
                   disabled={aiLoading}
-                  className="text-xs"
+                  className="text-sm"
                 >
                   {aiLoading ? (
                     <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />
@@ -407,7 +407,7 @@ export default function NewChangeOrderPage() {
                     variant={pricingType === type ? "default" : "outline"}
                     size="sm"
                     onClick={() => setPricingType(type)}
-                    className="text-xs"
+                    className="text-sm"
                   >
                     {type === "fixed"
                       ? "Fixed Price"
@@ -457,7 +457,7 @@ export default function NewChangeOrderPage() {
                           size="sm"
                           onClick={handleAISuggestItems}
                           disabled={aiLoading}
-                          className="text-xs"
+                          className="text-sm"
                         >
                           {aiLoading ? (
                             <Loader2 className="mr-1 h-3 w-3 animate-spin" />
@@ -493,7 +493,7 @@ export default function NewChangeOrderPage() {
                             })
                           }
                         >
-                          <SelectTrigger className="w-28 h-8 text-xs">
+                          <SelectTrigger className="w-28 h-8 text-sm">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -525,7 +525,7 @@ export default function NewChangeOrderPage() {
                       />
                       <div className="grid grid-cols-3 gap-2">
                         <div>
-                          <Label className="text-xs">Qty</Label>
+                          <Label className="text-sm">Qty</Label>
                           <Input
                             type="number"
                             step="0.5"
@@ -539,7 +539,7 @@ export default function NewChangeOrderPage() {
                           />
                         </div>
                         <div>
-                          <Label className="text-xs">Rate ($)</Label>
+                          <Label className="text-sm">Rate ($)</Label>
                           <Input
                             type="number"
                             step="0.01"
@@ -553,7 +553,7 @@ export default function NewChangeOrderPage() {
                           />
                         </div>
                         <div>
-                          <Label className="text-xs">Total</Label>
+                          <Label className="text-sm">Total</Label>
                           <Input
                             value={`$${(item.quantity * item.rate).toFixed(2)}`}
                             readOnly
@@ -565,7 +565,7 @@ export default function NewChangeOrderPage() {
                   ))}
 
                   {lineItems.length === 0 && (
-                    <p className="text-sm text-muted-foreground text-center py-3">
+                    <p className="text-base text-muted-foreground text-center py-3">
                       Add line items for time & materials
                     </p>
                   )}

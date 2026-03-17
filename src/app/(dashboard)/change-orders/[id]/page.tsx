@@ -90,7 +90,7 @@ export default async function ChangeOrderDetailPage({
         </Button>
         <div className="flex-1">
           <div className="flex items-center gap-2">
-            <span className="font-mono text-sm text-muted-foreground">
+            <span className="font-mono text-base text-muted-foreground">
               {co.co_number}
             </span>
             <Badge variant="secondary" className={status.color}>
@@ -105,7 +105,7 @@ export default async function ChangeOrderDetailPage({
       {/* Project info */}
       {project && (
         <Card>
-          <CardContent className="p-3 text-sm">
+          <CardContent className="p-3 text-base">
             <span className="text-muted-foreground">Project: </span>
             <Link
               href={`/projects/${project.id}`}
@@ -121,10 +121,10 @@ export default async function ChangeOrderDetailPage({
       {co.description && (
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm">Description</CardTitle>
+            <CardTitle className="text-base">Description</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-sm whitespace-pre-wrap">{co.description}</p>
+            <p className="text-base whitespace-pre-wrap">{co.description}</p>
           </CardContent>
         </Card>
       )}
@@ -132,10 +132,10 @@ export default async function ChangeOrderDetailPage({
       {/* Pricing */}
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm">Pricing</CardTitle>
+          <CardTitle className="text-base">Pricing</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          <Badge variant="outline" className="text-xs">
+          <Badge variant="outline" className="text-sm">
             {co.pricing_type === "fixed"
               ? "Fixed Price"
               : co.pricing_type === "tm"
@@ -144,7 +144,7 @@ export default async function ChangeOrderDetailPage({
           </Badge>
 
           {co.fixed_amount && co.pricing_type !== "tm" && (
-            <div className="flex justify-between text-sm">
+            <div className="flex justify-between text-base">
               <span>Fixed amount</span>
               <span className="font-medium">
                 ${Number(co.fixed_amount).toLocaleString()}
@@ -157,11 +157,11 @@ export default async function ChangeOrderDetailPage({
               {lineItems.map((item) => (
                 <div
                   key={item.id}
-                  className="flex justify-between text-sm border-b pb-2 last:border-0"
+                  className="flex justify-between text-base border-b pb-2 last:border-0"
                 >
                   <div>
                     <p>{item.description}</p>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-sm text-muted-foreground">
                       {item.quantity} {item.unit} @ ${Number(item.rate).toFixed(2)}
                     </p>
                   </div>
@@ -190,7 +190,7 @@ export default async function ChangeOrderDetailPage({
       {photos && photos.length > 0 && (
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm">Photos ({photos.length})</CardTitle>
+            <CardTitle className="text-base">Photos ({photos.length})</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-3 gap-2">
@@ -217,12 +217,12 @@ export default async function ChangeOrderDetailPage({
       {co.internal_notes && (
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-muted-foreground">
+            <CardTitle className="text-base text-muted-foreground">
               Internal Notes (not visible to client)
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-sm">{co.internal_notes}</p>
+            <p className="text-base">{co.internal_notes}</p>
           </CardContent>
         </Card>
       )}
@@ -231,7 +231,7 @@ export default async function ChangeOrderDetailPage({
       {approvalEvents && approvalEvents.length > 0 && (
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm">Approval History</CardTitle>
+            <CardTitle className="text-base">Approval History</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
@@ -240,14 +240,14 @@ export default async function ChangeOrderDetailPage({
                 return (
                   <div key={event.id} className="flex items-start gap-3">
                     <EventIcon className="h-4 w-4 mt-0.5 text-muted-foreground" />
-                    <div className="text-sm">
+                    <div className="text-base">
                       <p className="font-medium capitalize">{event.action}</p>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-sm text-muted-foreground">
                         {new Date(event.created_at).toLocaleString()} via{" "}
                         {event.method}
                       </p>
                       {event.client_name_typed && (
-                        <p className="text-xs">
+                        <p className="text-sm">
                           Signed: {event.client_name_typed}
                         </p>
                       )}
@@ -278,10 +278,19 @@ export default async function ChangeOrderDetailPage({
           </SendDialog>
         )}
         {co.status === "sent" && (
-          <Button variant="outline" className="flex-1 h-12" disabled>
-            <Clock className="mr-2 h-4 w-4" />
-            Awaiting Response
-          </Button>
+          <SendDialog
+            changeOrderId={co.id}
+            coNumber={co.co_number}
+            coTitle={co.title}
+            clientName={project?.client_name || undefined}
+            clientEmail={project?.client_email || undefined}
+            clientPhone={project?.client_phone || undefined}
+          >
+            <Button variant="outline" className="flex-1 h-12">
+              <Send className="mr-2 h-4 w-4" />
+              Resend for Approval
+            </Button>
+          </SendDialog>
         )}
         {co.status === "approved" && (
           <Badge className="flex-1 h-12 justify-center text-base bg-green-100 text-green-800">

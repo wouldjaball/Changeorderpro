@@ -129,7 +129,7 @@ export default function SignupPage() {
         </form>
       </CardContent>
       <CardFooter className="justify-center">
-        <p className="text-sm text-muted-foreground">
+        <p className="text-base text-muted-foreground">
           Already have an account?{" "}
           <Link href="/login" className="text-primary hover:underline">
             Sign in

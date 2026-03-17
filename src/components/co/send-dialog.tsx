@@ -140,7 +140,7 @@ export function SendDialog({
 
         <div className="space-y-4 py-2">
           {/* Contact info summary */}
-          <div className="rounded-lg border p-3 text-sm space-y-1">
+          <div className="rounded-lg border p-3 text-base space-y-1">
             {clientName && (
               <p>
                 <span className="text-muted-foreground">To: </span>
@@ -200,8 +200,8 @@ export function SendDialog({
                       )}
                     />
                     <div>
-                      <p className="text-sm font-medium">{m.label}</p>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-base font-medium">{m.label}</p>
+                      <p className="text-sm text-muted-foreground">
                         {m.description}
                       </p>
                     </div>

@@ -1,5 +1,3 @@
-import { FileText } from "lucide-react";
-
 export default function AuthLayout({
   children,
 }: {
@@ -7,9 +5,21 @@ export default function AuthLayout({
 }) {
   return (
     <div className="flex min-h-svh flex-col items-center justify-center bg-muted/40 p-4">
-      <div className="flex items-center gap-2 mb-8">
-        <FileText className="h-8 w-8 text-primary" />
-        <h1 className="text-2xl font-bold">ChangeOrder Pro</h1>
+      <div className="mb-8">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/Logos/CHange Order Pros White BG Logo png 750px.png"
+          alt="Change Order Pros"
+          width={320}
+          className="dark:hidden"
+        />
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/Logos/ChangeOrderPros Logo for BlacgBG .png"
+          alt="Change Order Pros"
+          width={320}
+          className="hidden dark:block"
+        />
       </div>
       <div className="w-full max-w-md">{children}</div>
     </div>

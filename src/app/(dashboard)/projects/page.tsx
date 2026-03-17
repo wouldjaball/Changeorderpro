@@ -45,7 +45,7 @@ export default async function ProjectsPage() {
           <CardContent className="py-12 text-center text-muted-foreground">
             <FolderOpen className="h-12 w-12 mx-auto mb-3 opacity-50" />
             <p className="font-medium">No projects yet</p>
-            <p className="text-sm mt-1">
+            <p className="text-base mt-1">
               Add your first project to start creating change orders
             </p>
             <Button className="mt-4" render={<Link href="/projects/new" />}>
@@ -64,18 +64,18 @@ export default async function ProjectsPage() {
                     <div>
                       <h3 className="font-semibold">{project.name}</h3>
                       {project.address && (
-                        <p className="text-sm text-muted-foreground flex items-center gap-1 mt-0.5">
+                        <p className="text-base text-muted-foreground flex items-center gap-1 mt-0.5">
                           <MapPin className="h-3 w-3" />
                           {project.address}
                         </p>
                       )}
                       {project.client_name && (
-                        <p className="text-sm text-muted-foreground mt-0.5">
+                        <p className="text-base text-muted-foreground mt-0.5">
                           Client: {project.client_name}
                         </p>
                       )}
                     </div>
-                    <div className="text-right text-sm text-muted-foreground">
+                    <div className="text-right text-base text-muted-foreground">
                       {Array.isArray(project.change_orders) &&
                         project.change_orders[0] && (
                           <span>

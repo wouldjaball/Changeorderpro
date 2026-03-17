@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { FileText, LogOut, Moon, Sun, User } from "lucide-react";
+import { LogOut, Moon, Sun, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -43,9 +43,22 @@ export function TopBar({ userName, companyName }: TopBarProps) {
     <header className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
       <div className="flex h-14 items-center justify-between px-4">
         <Link href="/" className="flex items-center gap-2">
-          <FileText className="h-6 w-6 text-primary" />
-          <span className="font-semibold text-sm hidden sm:inline">
-            {companyName || "ChangeOrder Pro"}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/Logos/CHange Order Pros White BG Logo png 750px.png"
+            alt="Change Order Pros"
+            width={140}
+            className="dark:hidden"
+          />
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/Logos/ChangeOrderPros Logo for BlacgBG .png"
+            alt="Change Order Pros"
+            width={140}
+            className="hidden dark:block"
+          />
+          <span className="font-semibold text-base hidden sm:inline">
+            {companyName ? `| ${companyName}` : ""}
           </span>
         </Link>
 
@@ -68,7 +81,7 @@ export function TopBar({ userName, companyName }: TopBarProps) {
                 className="relative h-9 w-9 rounded-full"
               >
                 <Avatar className="h-8 w-8">
-                  <AvatarFallback className="text-xs">
+                  <AvatarFallback className="text-sm">
                     {initials}
                   </AvatarFallback>
                 </Avatar>
@@ -76,8 +89,8 @@ export function TopBar({ userName, companyName }: TopBarProps) {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48">
               <div className="flex flex-col space-y-1 p-2">
-                <p className="text-sm font-medium">{userName}</p>
-                <p className="text-xs text-muted-foreground">{companyName}</p>
+                <p className="text-base font-medium">{userName}</p>
+                <p className="text-sm text-muted-foreground">{companyName}</p>
               </div>
               <DropdownMenuSeparator />
               <DropdownMenuItem render={<Link href="/settings" />}>

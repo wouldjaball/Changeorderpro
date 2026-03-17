@@ -45,7 +45,7 @@ export default async function TeamPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">Team</h1>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-base text-muted-foreground">
             {activeCount} active member{activeCount !== 1 ? "s" : ""}
           </p>
         </div>
@@ -57,7 +57,7 @@ export default async function TeamPage() {
       {/* Team members list */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-sm">Members</CardTitle>
+          <CardTitle className="text-base">Members</CardTitle>
         </CardHeader>
         <CardContent>
           {!members || members.length === 0 ? (
@@ -76,7 +76,7 @@ export default async function TeamPage() {
                     className="flex items-center justify-between p-3 rounded-lg border"
                   >
                     <div className="flex items-center gap-3 min-w-0">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary font-medium text-sm shrink-0">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary font-medium text-base shrink-0">
                         {member.full_name
                           .split(" ")
                           .map((n: string) => n[0])
@@ -85,13 +85,13 @@ export default async function TeamPage() {
                           .slice(0, 2)}
                       </div>
                       <div className="min-w-0">
-                        <p className="font-medium text-sm truncate">
+                        <p className="font-medium text-base truncate">
                           {member.full_name}
                           {member.id === user!.id && (
                             <span className="text-muted-foreground ml-1">(you)</span>
                           )}
                         </p>
-                        <p className="text-xs text-muted-foreground truncate">
+                        <p className="text-sm text-muted-foreground truncate">
                           {member.email}
                         </p>
                       </div>

@@ -67,7 +67,7 @@ export function COFilters({ projects }: COFiltersProps) {
       <select
         value={currentStatus}
         onChange={(e) => updateParam("status", e.target.value)}
-        className="h-9 rounded-md border border-input bg-background px-3 text-sm"
+        className="h-9 rounded-md border border-input bg-background px-3 text-base"
       >
         {STATUS_OPTIONS.map((opt) => (
           <option key={opt.value} value={opt.value}>
@@ -79,7 +79,7 @@ export function COFilters({ projects }: COFiltersProps) {
         <select
           value={currentProject}
           onChange={(e) => updateParam("project", e.target.value)}
-          className="h-9 rounded-md border border-input bg-background px-3 text-sm"
+          className="h-9 rounded-md border border-input bg-background px-3 text-base"
         >
           <option value="all">All Projects</option>
           {projects.map((p) => (

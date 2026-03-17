@@ -152,7 +152,7 @@ export default async function DashboardPage({
               <CardContent className="p-4">
                 <div className="flex items-center gap-2 text-muted-foreground mb-1">
                   <Icon className="h-4 w-4" />
-                  <span className="text-xs">{stat.label}</span>
+                  <span className="text-sm">{stat.label}</span>
                 </div>
                 <p className="text-2xl font-bold">{stat.value}</p>
               </CardContent>
@@ -180,14 +180,14 @@ export default async function DashboardPage({
               {filters.status || filters.project || filters.q ? (
                 <>
                   <p className="font-medium">No matching change orders</p>
-                  <p className="text-sm mt-1">
+                  <p className="text-base mt-1">
                     Try adjusting your filters
                   </p>
                 </>
               ) : (
                 <>
                   <p className="font-medium">No change orders yet</p>
-                  <p className="text-sm mt-1">
+                  <p className="text-base mt-1">
                     Create your first change order to get started
                   </p>
                   <Button className="mt-4" render={<Link href="/change-orders/new" />}>
@@ -207,7 +207,7 @@ export default async function DashboardPage({
                 >
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
-                      <span className="font-mono text-xs text-muted-foreground">
+                      <span className="font-mono text-sm text-muted-foreground">
                         {co.co_number}
                       </span>
                       <Badge
@@ -217,17 +217,17 @@ export default async function DashboardPage({
                         {co.status}
                       </Badge>
                     </div>
-                    <p className="font-medium text-sm truncate mt-0.5">
+                    <p className="font-medium text-base truncate mt-0.5">
                       {co.title}
                     </p>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-sm text-muted-foreground">
                       {co.project && !Array.isArray(co.project)
                         ? co.project.name
                         : ""}
                     </p>
                   </div>
                   <div className="text-right ml-3">
-                    <p className="font-semibold text-sm">
+                    <p className="font-semibold text-base">
                       $
                       {Number(
                         co.total_amount || co.fixed_amount || 0

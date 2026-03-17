@@ -63,7 +63,7 @@ export default async function ProjectDetailPage({
         <div className="flex-1">
           <h1 className="text-2xl font-bold">{project.name}</h1>
           {project.address && (
-            <p className="text-sm text-muted-foreground flex items-center gap-1">
+            <p className="text-base text-muted-foreground flex items-center gap-1">
               <MapPin className="h-3 w-3" />
               {project.address}
             </p>
@@ -79,9 +79,9 @@ export default async function ProjectDetailPage({
       {(project.client_name || project.client_email || project.client_phone) && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-sm">Client</CardTitle>
+            <CardTitle className="text-base">Client</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-1 text-sm">
+          <CardContent className="space-y-1 text-base">
             {project.client_name && (
               <p className="flex items-center gap-2">
                 <User className="h-3 w-3 text-muted-foreground" />
@@ -109,7 +109,7 @@ export default async function ProjectDetailPage({
         <Card className="flex-1">
           <CardContent className="p-4 text-center">
             <p className="text-2xl font-bold">{changeOrders?.length || 0}</p>
-            <p className="text-xs text-muted-foreground">Total COs</p>
+            <p className="text-sm text-muted-foreground">Total COs</p>
           </CardContent>
         </Card>
         <Card className="flex-1">
@@ -117,7 +117,7 @@ export default async function ProjectDetailPage({
             <p className="text-2xl font-bold">
               ${totalApproved.toLocaleString()}
             </p>
-            <p className="text-xs text-muted-foreground">Approved Value</p>
+            <p className="text-sm text-muted-foreground">Approved Value</p>
           </CardContent>
         </Card>
       </div>
@@ -133,7 +133,7 @@ export default async function ProjectDetailPage({
         </CardHeader>
         <CardContent>
           {!changeOrders || changeOrders.length === 0 ? (
-            <p className="text-center py-6 text-muted-foreground text-sm">
+            <p className="text-center py-6 text-muted-foreground text-base">
               No change orders for this project yet
             </p>
           ) : (
@@ -146,7 +146,7 @@ export default async function ProjectDetailPage({
                 >
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className="font-mono text-xs text-muted-foreground">
+                      <span className="font-mono text-sm text-muted-foreground">
                         {co.co_number}
                       </span>
                       <Badge
@@ -156,9 +156,9 @@ export default async function ProjectDetailPage({
                         {co.status}
                       </Badge>
                     </div>
-                    <p className="font-medium text-sm mt-0.5">{co.title}</p>
+                    <p className="font-medium text-base mt-0.5">{co.title}</p>
                   </div>
-                  <p className="font-semibold text-sm">
+                  <p className="font-semibold text-base">
                     $
                     {Number(
                       co.total_amount || co.fixed_amount || 0
