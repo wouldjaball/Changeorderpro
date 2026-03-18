@@ -74,7 +74,7 @@ export async function POST(request: NextRequest) {
   // Get company info for confirmation emails
   const { data: company } = await supabase
     .from("companies")
-    .select("name")
+    .select("name, logo_url")
     .eq("id", companyId)
     .single();
 
@@ -89,6 +89,7 @@ export async function POST(request: NextRequest) {
     try {
       const { subject, html } = emailApprovalConfirmation({
         companyName: company?.name || "Your contractor",
+        companyLogo: company?.logo_url || undefined,
         coNumber: co.co_number,
         coTitle: co.title,
         amount,
@@ -127,6 +128,7 @@ export async function POST(request: NextRequest) {
       try {
         const { subject, html } = emailApprovalConfirmation({
           companyName: company?.name || "Your company",
+          companyLogo: company?.logo_url || undefined,
           coNumber: co.co_number,
           coTitle: co.title,
           amount,
