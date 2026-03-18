@@ -30,6 +30,7 @@ import {
   Camera,
   DollarSign,
   Sparkles,
+  Wand2,
 } from "lucide-react";
 import Link from "next/link";
 import type { Project, PricingType, LineItemType } from "@/types";
@@ -117,7 +118,7 @@ export default function NewChangeOrderPage() {
     return (Number(fixedAmount) || 0) + lineTotal; // hybrid
   }
 
-  async function handleAIEnhance() {
+  async function handleAIOrganize() {
     if (!description.trim() || !title.trim()) {
       toast.error("Enter a title and description first");
       return;
@@ -129,7 +130,7 @@ export default function NewChangeOrderPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          mode: "enhance",
+          mode: "organize",
           description,
           title,
           projectName: selectedProject?.name,
@@ -139,9 +140,22 @@ export default function NewChangeOrderPage() {
       const data = await res.json();
       if (res.ok && data.result) {
         setDescription(data.result);
-        toast.success("Description enhanced");
+        // Populate line items if pricing type supports them
+        if (pricingType !== "fixed" && data.items?.length) {
+          const newItems: LineItem[] = data.items.map((item: { description: string; unit: string; quantity: number; item_type: string }) => ({
+            description: item.description,
+            quantity: item.quantity || 1,
+            unit: item.unit || "hours",
+            rate: 0,
+            item_type: (item.item_type as LineItemType) || "labor",
+          }));
+          setLineItems([...lineItems, ...newItems]);
+          toast.success(`Cleaned up description and added ${newItems.length} items`);
+        } else {
+          toast.success("Description cleaned up");
+        }
       } else {
-        toast.error(data.error || "AI enhancement failed");
+        toast.error(data.error || "AI cleanup failed");
       }
     } catch {
       toast.error("Network error");
@@ -372,7 +386,7 @@ export default function NewChangeOrderPage() {
               <Label htmlFor="description">Work description</Label>
               <Textarea
                 id="description"
-                placeholder="Describe the change in detail..."
+                placeholder="Describe the work — voice-to-text works great here..."
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 rows={3}
@@ -382,16 +396,19 @@ export default function NewChangeOrderPage() {
                   type="button"
                   variant="outline"
                   size="sm"
-                  onClick={handleAIEnhance}
+                  onClick={handleAIOrganize}
                   disabled={aiLoading}
                   className="text-sm"
                 >
                   {aiLoading ? (
                     <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />
                   ) : (
-                    <Sparkles className="mr-1.5 h-3 w-3" />
+                    <Wand2 className="mr-1.5 h-3 w-3" />
                   )}
-                  Enhance with AI
+                  AI Clean Up
+                  <span className="ml-1 text-muted-foreground font-normal">
+                    Fix spelling &amp; organize
+                  </span>
                 </Button>
               )}
             </div>

@@ -76,6 +76,63 @@ Summary:`,
 }
 
 /**
+ * Clean up voice-to-text dictation: fix spelling/grammar, rewrite professionally,
+ * and extract structured line items — all in one API call.
+ */
+export async function organizeFromDictation(params: {
+  description: string;
+  title: string;
+  projectName?: string;
+  pricingType?: string;
+}): Promise<{
+  description: string;
+  line_items: { description: string; unit: string; quantity: number; item_type: string }[];
+}> {
+  const client = getClient();
+
+  const message = await client.messages.create({
+    model: "claude-sonnet-4-5-20250929",
+    max_tokens: 1024,
+    messages: [
+      {
+        role: "user",
+        content: `You are a professional construction change order writer. You are cleaning up a voice-to-text dictation from a contractor on a job site.
+
+The input will be messy — expect missing punctuation, spelling errors, run-on sentences, filler words (um, uh, like, you know, so basically, gonna, gotta, wanna), and disorganized thoughts. Your job:
+
+1. DESCRIPTION: Rewrite the dictation into a clear, professional, client-facing change order description. Fix all spelling, punctuation, and grammar. Remove filler words. Keep it concise (2-4 sentences). Use construction industry terminology. Do not add information that isn't implied.
+
+2. LINE ITEMS: Extract discrete work items into structured line items. Each item needs: description (professional wording), unit (e.g., "hours", "each", "sqft", "lf"), quantity (your best estimate, default to 1 if unclear), item_type ("labor", "materials", or "other").
+
+Return ONLY valid JSON in this exact format, no explanation:
+{"description": "...", "line_items": [{"description": "...", "unit": "...", "quantity": 1, "item_type": "labor"}]}
+
+Title: ${params.title}
+${params.projectName ? `Project: ${params.projectName}` : ""}
+${params.pricingType ? `Pricing type: ${params.pricingType}` : ""}
+
+Raw dictation:
+${params.description}
+
+JSON:`,
+      },
+    ],
+  });
+
+  const textBlock = message.content.find((block) => block.type === "text");
+  if (!textBlock?.text) {
+    return { description: params.description, line_items: [] };
+  }
+
+  try {
+    const cleaned = textBlock.text.trim().replace(/^```json\n?/, "").replace(/\n?```$/, "");
+    return JSON.parse(cleaned);
+  } catch {
+    return { description: params.description, line_items: [] };
+  }
+}
+
+/**
  * Suggest line items based on a CO description.
  */
 export async function suggestLineItems(params: {
