@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { FileText, AlertTriangle, CheckCircle, XCircle } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
 import type { Metadata } from "next";
 
 export const dynamic = "force-dynamic";
@@ -238,9 +239,18 @@ export default async function ApprovalPage({
           amount={amount}
         />
 
-        <p className="text-sm text-center text-muted-foreground">
-          Powered by ChangeOrder Pro
-        </p>
+        <div className="text-sm text-center text-muted-foreground space-y-1">
+          <p>Powered by ChangeOrder Pro</p>
+          <p>
+            <Link href="/privacy" className="hover:underline">
+              Privacy Policy
+            </Link>
+            {" · "}
+            <Link href="/terms" className="hover:underline">
+              Terms &amp; Conditions
+            </Link>
+          </p>
+        </div>
       </div>
     </div>
   );

@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export default function AuthLayout({
   children,
 }: {
@@ -22,6 +24,15 @@ export default function AuthLayout({
         />
       </div>
       <div className="w-full max-w-md">{children}</div>
+      <div className="mt-8 flex gap-3 text-sm text-muted-foreground">
+        <Link href="/privacy" className="hover:underline">
+          Privacy Policy
+        </Link>
+        <span>&middot;</span>
+        <Link href="/terms" className="hover:underline">
+          Terms &amp; Conditions
+        </Link>
+      </div>
     </div>
   );
 }
