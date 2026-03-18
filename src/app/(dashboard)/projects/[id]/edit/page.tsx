@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import { useRouter, useParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,11 +16,15 @@ import {
 import { toast } from "sonner";
 import { Loader2, ArrowLeft } from "lucide-react";
 import Link from "next/link";
+import type { Project } from "@/types";
 
-export default function NewProjectPage() {
+export default function EditProjectPage() {
   const router = useRouter();
+  const { id } = useParams<{ id: string }>();
   const supabase = createClient();
+
   const [loading, setLoading] = useState(false);
+  const [fetching, setFetching] = useState(true);
   const [name, setName] = useState("");
   const [address, setAddress] = useState("");
   const [clientName, setClientName] = useState("");
@@ -28,53 +32,80 @@ export default function NewProjectPage() {
   const [clientPhone, setClientPhone] = useState("");
   const [clientPhoneSecondary, setClientPhoneSecondary] = useState("");
 
+  useEffect(() => {
+    async function loadProject() {
+      const { data, error } = await supabase
+        .from("projects")
+        .select("*")
+        .eq("id", id)
+        .single();
+
+      if (error || !data) {
+        toast.error("Project not found");
+        router.push("/projects");
+        return;
+      }
+
+      const project = data as Project;
+      setName(project.name);
+      setAddress(project.address || "");
+      setClientName(project.client_name || "");
+      setClientEmail(project.client_email || "");
+      setClientPhone(project.client_phone || "");
+      setClientPhoneSecondary(project.client_phone_secondary || "");
+      setFetching(false);
+    }
+    loadProject();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    const { data: profile } = await supabase
-      .from("users")
-      .select("company_id")
-      .eq("id", user!.id)
-      .single();
-
-    const { error } = await supabase.from("projects").insert({
-      company_id: profile!.company_id!,
-      name,
-      address: address || null,
-      client_name: clientName || null,
-      client_email: clientEmail || null,
-      client_phone: clientPhone || null,
-      client_phone_secondary: clientPhoneSecondary || null,
-      created_by: user!.id,
-    });
+    const { error } = await supabase
+      .from("projects")
+      .update({
+        name,
+        address: address || null,
+        client_name: clientName || null,
+        client_email: clientEmail || null,
+        client_phone: clientPhone || null,
+        client_phone_secondary: clientPhoneSecondary || null,
+      })
+      .eq("id", id);
 
     if (error) {
-      toast.error("Failed to create project: " + error.message);
+      toast.error("Failed to update project: " + error.message);
       setLoading(false);
       return;
     }
 
-    toast.success("Project created");
-    router.push("/projects");
+    toast.success("Project updated");
+    router.push(`/projects/${id}`);
     router.refresh();
+  }
+
+  if (fetching) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
   }
 
   return (
     <div className="space-y-4">
-      <Button variant="ghost" size="sm" render={<Link href="/projects" />}>
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Back to Projects
+      <Button variant="ghost" size="sm" render={<Link href={`/projects/${id}`} />}>
+        <ArrowLeft className="mr-2 h-4 w-4" />
+        Back to Project
       </Button>
 
       <Card>
         <CardHeader>
-          <CardTitle>New Project</CardTitle>
+          <CardTitle>Edit Project</CardTitle>
           <CardDescription>
-            Add a job or project to create change orders against
+            Update project details and client contact information
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -147,7 +178,7 @@ export default function NewProjectPage() {
 
             <Button type="submit" className="w-full" disabled={loading}>
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Create Project
+              Save Changes
             </Button>
           </form>
         </CardContent>

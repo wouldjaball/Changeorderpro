@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
-import { Loader2, Save } from "lucide-react";
+import { Loader2, Save, Upload, X } from "lucide-react";
 import type { Company, CompanySettings } from "@/types";
 
 interface SettingsFormProps {
@@ -27,6 +27,39 @@ export function SettingsForm({ company }: SettingsFormProps) {
   const router = useRouter();
   const supabase = createClient();
   const [loading, setLoading] = useState(false);
+  const [logoUrl, setLogoUrl] = useState(company.logo_url || "");
+  const [logoUploading, setLogoUploading] = useState(false);
+
+  async function handleLogoUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setLogoUploading(true);
+    const ext = file.name.split(".").pop()?.toLowerCase() || "png";
+    const path = `${company.id}/logo.${ext}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from("company-logos")
+      .upload(path, file, { upsert: true });
+
+    if (uploadError) {
+      toast.error("Failed to upload logo: " + uploadError.message);
+      setLogoUploading(false);
+      return;
+    }
+
+    const {
+      data: { publicUrl },
+    } = supabase.storage.from("company-logos").getPublicUrl(path);
+
+    setLogoUrl(publicUrl);
+    setLogoUploading(false);
+    toast.success("Logo uploaded — save settings to apply");
+  }
+
+  function handleLogoRemove() {
+    setLogoUrl("");
+  }
 
   // Company info
   const [name, setName] = useState(company.name);
@@ -70,6 +103,7 @@ export function SettingsForm({ company }: SettingsFormProps) {
         address_city: addressCity || null,
         address_state: addressState || null,
         address_zip: addressZip || null,
+        logo_url: logoUrl || null,
         settings: updatedSettings,
       })
       .eq("id", company.id);
@@ -94,6 +128,54 @@ export function SettingsForm({ company }: SettingsFormProps) {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label>Company logo</Label>
+            {logoUrl ? (
+              <div className="flex items-center gap-3">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={logoUrl}
+                  alt="Company logo"
+                  className="h-12 max-w-[200px] object-contain rounded border"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleLogoRemove}
+                >
+                  <X className="mr-1 h-3 w-3" />
+                  Remove
+                </Button>
+              </div>
+            ) : (
+              <div>
+                <label
+                  htmlFor="logoUpload"
+                  className="inline-flex items-center gap-2 cursor-pointer rounded-md border border-dashed border-input px-4 py-2 text-sm text-muted-foreground hover:bg-accent transition-colors"
+                >
+                  {logoUploading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Upload className="h-4 w-4" />
+                  )}
+                  {logoUploading ? "Uploading..." : "Upload logo"}
+                </label>
+                <input
+                  id="logoUpload"
+                  type="file"
+                  accept="image/png,image/jpeg,image/svg+xml"
+                  className="hidden"
+                  onChange={handleLogoUpload}
+                  disabled={logoUploading}
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  PNG, JPG, or SVG. Appears on emails, PDFs, and the approval page.
+                </p>
+              </div>
+            )}
+          </div>
+          <Separator />
           <div className="space-y-2">
             <Label htmlFor="companyName">Company name *</Label>
             <Input

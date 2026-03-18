@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Plus, MapPin, Phone, Mail, User } from "lucide-react";
+import { ArrowLeft, Plus, MapPin, Phone, Mail, User, Pencil } from "lucide-react";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { CsvExportButton } from "@/components/co/csv-export-button";
@@ -69,6 +69,9 @@ export default async function ProjectDetailPage({
             </p>
           )}
         </div>
+        <Button variant="outline" size="icon" render={<Link href={`/projects/${id}/edit`} />}>
+            <Pencil className="h-4 w-4" />
+        </Button>
         <Button render={<Link href={`/change-orders/new?project=${id}`} />}>
             <Plus className="mr-2 h-4 w-4" />
             New CO
@@ -76,7 +79,7 @@ export default async function ProjectDetailPage({
       </div>
 
       {/* Client info */}
-      {(project.client_name || project.client_email || project.client_phone) && (
+      {(project.client_name || project.client_email || project.client_phone || project.client_phone_secondary) && (
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Client</CardTitle>
@@ -98,6 +101,13 @@ export default async function ProjectDetailPage({
               <p className="flex items-center gap-2">
                 <Phone className="h-3 w-3 text-muted-foreground" />
                 {project.client_phone}
+              </p>
+            )}
+            {project.client_phone_secondary && (
+              <p className="flex items-center gap-2">
+                <Phone className="h-3 w-3 text-muted-foreground" />
+                {project.client_phone_secondary}
+                <span className="text-xs text-muted-foreground">(secondary)</span>
               </p>
             )}
           </CardContent>

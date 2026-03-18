@@ -61,6 +61,7 @@ export interface Project {
   client_name: string | null;
   client_email: string | null;
   client_phone: string | null;
+  client_phone_secondary: string | null;
   status: ProjectStatus;
   created_by: string | null;
   created_at: string;
@@ -167,6 +168,7 @@ export interface CreateProjectForm {
   client_name?: string;
   client_email?: string;
   client_phone?: string;
+  client_phone_secondary?: string;
 }
 
 export interface CreateCOForm {

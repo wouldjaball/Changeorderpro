@@ -124,6 +124,7 @@ export function emailApprovalRequest(params: {
 
 export function emailApprovalConfirmation(params: {
   companyName: string;
+  companyLogo?: string;
   coNumber: string;
   coTitle: string;
   amount: string;
@@ -144,7 +145,7 @@ export function emailApprovalConfirmation(params: {
 <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 0; background-color: #f5f5f5;">
   <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
     <div style="background: white; border-radius: 12px; padding: 32px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
-      <h2 style="margin: 0 0 20px; color: #1a1a1a;">${params.companyName}</h2>
+      ${params.companyLogo ? `<img src="${params.companyLogo}" alt="${params.companyName}" style="height: 40px; margin-bottom: 20px;" />` : `<h2 style="margin: 0 0 20px; color: #1a1a1a;">${params.companyName}</h2>`}
 
       <div style="text-align: center; margin: 20px 0;">
         <span style="display: inline-block; background: ${statusColor}15; color: ${statusColor}; padding: 8px 20px; border-radius: 20px; font-weight: 600; font-size: 14px;">

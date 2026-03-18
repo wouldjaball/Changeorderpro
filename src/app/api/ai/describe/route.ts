@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { enhanceDescription, summarizeNotes, suggestLineItems } from "@/lib/ai";
+import { enhanceDescription, summarizeNotes, suggestLineItems, organizeFromDictation } from "@/lib/ai";
 
 export async function POST(request: NextRequest) {
   // Verify authenticated user
@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
 
   const body = await request.json();
   const { mode, description, title, projectName, pricingType } = body as {
-    mode: "enhance" | "summarize" | "line-items";
+    mode: "enhance" | "summarize" | "line-items" | "organize";
     description: string;
     title: string;
     projectName?: string;
@@ -59,6 +59,19 @@ export async function POST(request: NextRequest) {
         pricingType: pricingType || "tm",
       });
       return NextResponse.json({ items });
+    }
+
+    if (mode === "organize") {
+      const organized = await organizeFromDictation({
+        description,
+        title,
+        projectName,
+        pricingType,
+      });
+      return NextResponse.json({
+        result: organized.description,
+        items: organized.line_items,
+      });
     }
 
     return NextResponse.json({ error: "Invalid mode" }, { status: 400 });
