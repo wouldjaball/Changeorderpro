@@ -57,6 +57,14 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  // Enforce SMS opt-in consent for A2P 10DLC compliance
+  if ((method === "sms" || method === "both") && !project.sms_consent) {
+    return NextResponse.json(
+      { error: "SMS consent not recorded. Edit the project to confirm client opted in before sending via SMS." },
+      { status: 400 }
+    );
+  }
+
   // Get company info
   const { data: company } = await supabase
     .from("companies")

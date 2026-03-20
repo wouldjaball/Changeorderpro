@@ -24,6 +24,7 @@ interface SendDialogProps {
   clientName?: string;
   clientEmail?: string;
   clientPhone?: string;
+  smsConsent?: boolean;
   children: React.ReactNode;
 }
 
@@ -66,6 +67,7 @@ export function SendDialog({
   clientName,
   clientEmail,
   clientPhone,
+  smsConsent,
   children,
 }: SendDialogProps) {
   const router = useRouter();
@@ -73,7 +75,7 @@ export function SendDialog({
   const [method, setMethod] = useState<ApprovalMethod>("both");
   const [loading, setLoading] = useState(false);
 
-  const canSMS = !!clientPhone;
+  const canSMS = !!clientPhone && !!smsConsent;
   const canEmail = !!clientEmail;
 
   async function handleSend() {
@@ -162,6 +164,11 @@ export function SendDialog({
             {!clientPhone && !clientEmail && (
               <p className="text-destructive">
                 No contact info — add client email or phone to the project first
+              </p>
+            )}
+            {clientPhone && !smsConsent && (
+              <p className="text-sm text-amber-600">
+                SMS consent not recorded — edit the project to confirm client opted in before sending via SMS
               </p>
             )}
           </div>
