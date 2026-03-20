@@ -27,6 +27,7 @@ export default function NewProjectPage() {
   const [clientEmail, setClientEmail] = useState("");
   const [clientPhone, setClientPhone] = useState("");
   const [clientPhoneSecondary, setClientPhoneSecondary] = useState("");
+  const [smsConsent, setSmsConsent] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -49,6 +50,8 @@ export default function NewProjectPage() {
       client_email: clientEmail || null,
       client_phone: clientPhone || null,
       client_phone_secondary: clientPhoneSecondary || null,
+      sms_consent: smsConsent,
+      sms_consent_at: smsConsent ? new Date().toISOString() : null,
       created_by: user!.id,
     });
 
@@ -142,6 +145,38 @@ export default function NewProjectPage() {
                     onChange={(e) => setClientPhoneSecondary(e.target.value)}
                   />
                 </div>
+
+                {/* SMS Opt-In Consent */}
+                {clientPhone.trim() && (
+                  <div className="rounded-lg border bg-muted/30 p-3 space-y-2">
+                    <label className="flex items-start gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={smsConsent}
+                        onChange={(e) => setSmsConsent(e.target.checked)}
+                        className="mt-1 h-4 w-4 rounded border-gray-300"
+                      />
+                      <span className="text-sm leading-snug">
+                        The client has agreed to receive SMS messages from ChangeOrder Pro
+                        regarding change order approvals for this project.
+                      </span>
+                    </label>
+                    <p className="text-xs text-muted-foreground leading-relaxed pl-6">
+                      By checking this box, you confirm the client consented to receive
+                      transactional SMS messages including change order approval requests
+                      and reminders. Msg frequency varies (1–4 per change order). Msg &amp; data
+                      rates may apply. Reply STOP to opt out, HELP for help.{" "}
+                      <Link href="/privacy" className="underline" target="_blank">
+                        Privacy Policy
+                      </Link>{" "}
+                      &amp;{" "}
+                      <Link href="/terms" className="underline" target="_blank">
+                        Terms
+                      </Link>
+                      .
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
 
