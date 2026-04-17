@@ -60,6 +60,7 @@ export interface Project {
   address: string | null;
   client_name: string | null;
   client_email: string | null;
+  client_emails: string[];
   client_phone: string | null;
   client_phone_secondary: string | null;
   sms_consent: boolean;
@@ -169,6 +170,7 @@ export interface CreateProjectForm {
   address?: string;
   client_name?: string;
   client_email?: string;
+  client_emails?: string[];
   client_phone?: string;
   client_phone_secondary?: string;
 }

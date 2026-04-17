@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
   // Fetch all COs in "sent" status
   const { data: pendingCOs, error } = await supabase
     .from("change_orders")
-    .select("*, project:projects(client_name, client_email, client_phone, name)")
+    .select("*, project:projects(client_name, client_email, client_emails, client_phone, name)")
     .eq("status", "sent")
     .not("sent_at", "is", null);
 
@@ -164,35 +164,45 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Send reminder via email
-    if (project.client_email && (co.approval_method === "email" || co.approval_method === "both")) {
-      try {
-        const emailResult = await sendEmail({
-          to: project.client_email,
-          subject: `Reminder: Change Order #${co.co_number} awaiting your approval`,
-          html: `
-            <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
-              <h2>Reminder: Approval Needed</h2>
-              <p>Change Order <strong>#${co.co_number}</strong> — "${co.title}" from ${company?.name || "your contractor"} is still awaiting your response.</p>
-              <div style="text-align: center; margin: 24px 0;">
-                <a href="${approvalLink}" style="background: #2563eb; color: white; padding: 12px 32px; border-radius: 8px; text-decoration: none; font-weight: bold; display: inline-block;">Review & Approve</a>
-              </div>
-              <p style="color: #666; font-size: 14px;">Amount: $${Number(co.total_amount || co.fixed_amount || 0).toLocaleString()}</p>
-            </div>
-          `,
-        });
+    // Send reminder via email — to all client emails
+    const reminderEmails: string[] = [];
+    if (project.client_email) reminderEmails.push(project.client_email);
+    if (project.client_emails && Array.isArray(project.client_emails)) {
+      for (const e of project.client_emails) {
+        if (e && !reminderEmails.includes(e)) reminderEmails.push(e);
+      }
+    }
 
-        await supabase.from("notifications_log").insert({
-          change_order_id: co.id,
-          company_id: co.company_id,
-          channel: "email",
-          recipient: project.client_email,
-          template_type: "reminder",
-          external_id: emailResult.id,
-          status: "sent",
-        });
-      } catch {
-        results.errors.push(`Email reminder for ${co.co_number} failed`);
+    if (reminderEmails.length > 0 && (co.approval_method === "email" || co.approval_method === "both")) {
+      for (const recipient of reminderEmails) {
+        try {
+          const emailResult = await sendEmail({
+            to: recipient,
+            subject: `Reminder: Change Order #${co.co_number} awaiting your approval`,
+            html: `
+              <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+                <h2>Reminder: Approval Needed</h2>
+                <p>Change Order <strong>#${co.co_number}</strong> — "${co.title}" from ${company?.name || "your contractor"} is still awaiting your response.</p>
+                <div style="text-align: center; margin: 24px 0;">
+                  <a href="${approvalLink}" style="background: #2563eb; color: white; padding: 12px 32px; border-radius: 8px; text-decoration: none; font-weight: bold; display: inline-block;">Review & Approve</a>
+                </div>
+                <p style="color: #666; font-size: 14px;">Amount: $${Number(co.total_amount || co.fixed_amount || 0).toLocaleString()}</p>
+              </div>
+            `,
+          });
+
+          await supabase.from("notifications_log").insert({
+            change_order_id: co.id,
+            company_id: co.company_id,
+            channel: "email",
+            recipient,
+            template_type: "reminder",
+            external_id: emailResult.id,
+            status: "sent",
+          });
+        } catch {
+          results.errors.push(`Email reminder for ${co.co_number} to ${recipient} failed`);
+        }
       }
     }
 

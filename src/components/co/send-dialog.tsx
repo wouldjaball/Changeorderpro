@@ -23,6 +23,7 @@ interface SendDialogProps {
   coTitle: string;
   clientName?: string;
   clientEmail?: string;
+  clientEmails?: string[];
   clientPhone?: string;
   smsConsent?: boolean;
   children: React.ReactNode;
@@ -66,6 +67,7 @@ export function SendDialog({
   coTitle,
   clientName,
   clientEmail,
+  clientEmails = [],
   clientPhone,
   smsConsent,
   children,
@@ -76,7 +78,12 @@ export function SendDialog({
   const [loading, setLoading] = useState(false);
 
   const canSMS = !!clientPhone && !!smsConsent;
-  const canEmail = !!clientEmail;
+  const allEmails: string[] = [];
+  if (clientEmail) allEmails.push(clientEmail);
+  for (const e of clientEmails) {
+    if (e && !allEmails.includes(e)) allEmails.push(e);
+  }
+  const canEmail = allEmails.length > 0;
 
   async function handleSend() {
     // Validate we can send via selected method
@@ -155,11 +162,16 @@ export function SendDialog({
                 {clientPhone}
               </p>
             )}
-            {clientEmail && (
-              <p>
+            {allEmails.length > 0 && (
+              <div>
                 <span className="text-muted-foreground">Email: </span>
-                {clientEmail}
-              </p>
+                {allEmails.map((e, i) => (
+                  <span key={e}>
+                    {i > 0 && ", "}
+                    {e}
+                  </span>
+                ))}
+              </div>
             )}
             {!clientPhone && !clientEmail && (
               <p className="text-destructive">

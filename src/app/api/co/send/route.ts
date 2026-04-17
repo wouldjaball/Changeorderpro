@@ -162,51 +162,61 @@ export async function POST(request: NextRequest) {
     notifications.push(smsPromise);
   }
 
-  // Email
-  if ((method === "email" || method === "both") && project.client_email) {
-    const emailPromise = (async () => {
-      const { subject, html } = emailApprovalRequest({
-        companyName: company?.name || "Your contractor",
-        companyLogo: company?.logo_url || undefined,
-        coNumber: co.co_number,
-        projectName: project.name,
-        coTitle: co.title,
-        description: co.description || undefined,
-        amount,
-        pricingType: co.pricing_type,
-        approvalLink: approvalUrl,
-        photoUrls,
-      });
+  // Email — send to primary + additional emails
+  const allEmails: string[] = [];
+  if (project.client_email) allEmails.push(project.client_email);
+  if (project.client_emails && Array.isArray(project.client_emails)) {
+    for (const e of project.client_emails) {
+      if (e && !allEmails.includes(e)) allEmails.push(e);
+    }
+  }
 
-      try {
-        const result = await sendEmail({
-          to: project.client_email!,
-          subject,
-          html,
-        });
+  if ((method === "email" || method === "both") && allEmails.length > 0) {
+    const { subject, html } = emailApprovalRequest({
+      companyName: company?.name || "Your contractor",
+      companyLogo: company?.logo_url || undefined,
+      coNumber: co.co_number,
+      projectName: project.name,
+      coTitle: co.title,
+      description: co.description || undefined,
+      amount,
+      pricingType: co.pricing_type,
+      approvalLink: approvalUrl,
+      photoUrls,
+    });
 
-        await admin.from("notifications_log").insert({
-          change_order_id: co.id,
-          company_id: co.company_id,
-          channel: "email",
-          recipient: project.client_email!,
-          template_type: "approval_request",
-          external_id: result.id,
-          status: "sent",
-        });
-      } catch (err) {
-        await admin.from("notifications_log").insert({
-          change_order_id: co.id,
-          company_id: co.company_id,
-          channel: "email",
-          recipient: project.client_email!,
-          template_type: "approval_request",
-          status: "failed",
-          error_message: err instanceof Error ? err.message : "Unknown error",
-        });
-      }
-    })();
-    notifications.push(emailPromise);
+    for (const recipient of allEmails) {
+      const emailPromise = (async () => {
+        try {
+          const result = await sendEmail({
+            to: recipient,
+            subject,
+            html,
+          });
+
+          await admin.from("notifications_log").insert({
+            change_order_id: co.id,
+            company_id: co.company_id,
+            channel: "email",
+            recipient,
+            template_type: "approval_request",
+            external_id: result.id,
+            status: "sent",
+          });
+        } catch (err) {
+          await admin.from("notifications_log").insert({
+            change_order_id: co.id,
+            company_id: co.company_id,
+            channel: "email",
+            recipient,
+            template_type: "approval_request",
+            status: "failed",
+            error_message: err instanceof Error ? err.message : "Unknown error",
+          });
+        }
+      })();
+      notifications.push(emailPromise);
+    }
   }
 
   // Log audit event

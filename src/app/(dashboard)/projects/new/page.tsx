@@ -14,7 +14,7 @@ import {
   CardDescription,
 } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Loader2, ArrowLeft } from "lucide-react";
+import { Loader2, ArrowLeft, Plus, X } from "lucide-react";
 import Link from "next/link";
 
 export default function NewProjectPage() {
@@ -27,6 +27,7 @@ export default function NewProjectPage() {
   const [clientEmail, setClientEmail] = useState("");
   const [clientPhone, setClientPhone] = useState("");
   const [clientPhoneSecondary, setClientPhoneSecondary] = useState("");
+  const [clientEmails, setClientEmails] = useState<string[]>([]);
   const [smsConsent, setSmsConsent] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -48,6 +49,7 @@ export default function NewProjectPage() {
       address: address || null,
       client_name: clientName || null,
       client_email: clientEmail || null,
+      client_emails: clientEmails.filter((e) => e.trim()),
       client_phone: clientPhone || null,
       client_phone_secondary: clientPhoneSecondary || null,
       sms_consent: smsConsent,
@@ -125,6 +127,41 @@ export default function NewProjectPage() {
                     onChange={(e) => setClientEmail(e.target.value)}
                   />
                 </div>
+                {clientEmails.map((ce, i) => (
+                  <div key={i} className="flex items-end gap-2">
+                    <div className="space-y-2 flex-1">
+                      {i === 0 && <Label>Additional emails</Label>}
+                      <Input
+                        type="email"
+                        placeholder="another@example.com"
+                        value={ce}
+                        onChange={(e) => {
+                          const next = [...clientEmails];
+                          next[i] = e.target.value;
+                          setClientEmails(next);
+                        }}
+                      />
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="shrink-0"
+                      onClick={() => setClientEmails(clientEmails.filter((_, j) => j !== i))}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setClientEmails([...clientEmails, ""])}
+                >
+                  <Plus className="mr-2 h-3 w-3" />
+                  Add email
+                </Button>
                 <div className="space-y-2">
                   <Label htmlFor="clientPhone">Client phone</Label>
                   <Input

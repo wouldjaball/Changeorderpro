@@ -269,6 +269,7 @@ export default async function ChangeOrderDetailPage({
             coTitle={co.title}
             clientName={project?.client_name || undefined}
             clientEmail={project?.client_email || undefined}
+            clientEmails={(project?.client_emails as string[]) || []}
             clientPhone={project?.client_phone || undefined}
             smsConsent={project?.sms_consent || false}
           >
@@ -285,6 +286,7 @@ export default async function ChangeOrderDetailPage({
             coTitle={co.title}
             clientName={project?.client_name || undefined}
             clientEmail={project?.client_email || undefined}
+            clientEmails={(project?.client_emails as string[]) || []}
             clientPhone={project?.client_phone || undefined}
             smsConsent={project?.sms_consent || false}
           >

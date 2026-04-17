@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Plus, MapPin, Phone, Mail, User, Pencil } from "lucide-react";
+import { AddEmailInline } from "@/components/projects/add-email-inline";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { CsvExportButton } from "@/components/co/csv-export-button";
@@ -79,40 +80,42 @@ export default async function ProjectDetailPage({
       </div>
 
       {/* Client info */}
-      {(project.client_name || project.client_email || project.client_phone || project.client_phone_secondary) && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Client</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-1 text-base">
-            {project.client_name && (
-              <p className="flex items-center gap-2">
-                <User className="h-3 w-3 text-muted-foreground" />
-                {project.client_name}
-              </p>
-            )}
-            {project.client_email && (
-              <p className="flex items-center gap-2">
-                <Mail className="h-3 w-3 text-muted-foreground" />
-                {project.client_email}
-              </p>
-            )}
-            {project.client_phone && (
-              <p className="flex items-center gap-2">
-                <Phone className="h-3 w-3 text-muted-foreground" />
-                {project.client_phone}
-              </p>
-            )}
-            {project.client_phone_secondary && (
-              <p className="flex items-center gap-2">
-                <Phone className="h-3 w-3 text-muted-foreground" />
-                {project.client_phone_secondary}
-                <span className="text-xs text-muted-foreground">(secondary)</span>
-              </p>
-            )}
-          </CardContent>
-        </Card>
-      )}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Client</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-1 text-base">
+          {project.client_name && (
+            <p className="flex items-center gap-2">
+              <User className="h-3 w-3 text-muted-foreground" />
+              {project.client_name}
+            </p>
+          )}
+          {project.client_email && (
+            <p className="flex items-center gap-2">
+              <Mail className="h-3 w-3 text-muted-foreground" />
+              {project.client_email}
+            </p>
+          )}
+          <AddEmailInline
+            projectId={id}
+            existingEmails={(project.client_emails as string[]) || []}
+          />
+          {project.client_phone && (
+            <p className="flex items-center gap-2">
+              <Phone className="h-3 w-3 text-muted-foreground" />
+              {project.client_phone}
+            </p>
+          )}
+          {project.client_phone_secondary && (
+            <p className="flex items-center gap-2">
+              <Phone className="h-3 w-3 text-muted-foreground" />
+              {project.client_phone_secondary}
+              <span className="text-xs text-muted-foreground">(secondary)</span>
+            </p>
+          )}
+        </CardContent>
+      </Card>
 
       {/* CO summary */}
       <div className="flex gap-3">

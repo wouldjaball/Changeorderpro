@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
   // Fetch the CO to validate token
   const { data: co, error } = await supabase
     .from("change_orders")
-    .select("*, project:projects(client_email, client_name)")
+    .select("*, project:projects(client_email, client_emails, client_name)")
     .eq("id", changeOrderId)
     .eq("approval_token", token)
     .single();
@@ -84,35 +84,45 @@ export async function POST(request: NextRequest) {
     { minimumFractionDigits: 2 }
   );
 
-  // Send confirmation email to client
-  if (project?.client_email) {
-    try {
-      const { subject, html } = emailApprovalConfirmation({
-        companyName: company?.name || "Your contractor",
-        companyLogo: company?.logo_url || undefined,
-        coNumber: co.co_number,
-        coTitle: co.title,
-        amount,
-        action,
-      });
+  // Send confirmation email to all client emails
+  const confirmEmails: string[] = [];
+  if (project?.client_email) confirmEmails.push(project.client_email);
+  if (project?.client_emails && Array.isArray(project.client_emails)) {
+    for (const e of project.client_emails) {
+      if (e && !confirmEmails.includes(e)) confirmEmails.push(e);
+    }
+  }
 
-      const result = await sendEmail({
-        to: project.client_email,
-        subject,
-        html,
-      });
+  if (confirmEmails.length > 0) {
+    const { subject, html } = emailApprovalConfirmation({
+      companyName: company?.name || "Your contractor",
+      companyLogo: company?.logo_url || undefined,
+      coNumber: co.co_number,
+      coTitle: co.title,
+      amount,
+      action,
+    });
 
-      await supabase.from("notifications_log").insert({
-        change_order_id: changeOrderId,
-        company_id: companyId,
-        channel: "email",
-        recipient: project.client_email,
-        template_type: `${action}_confirmation`,
-        external_id: result.id,
-        status: "sent",
-      });
-    } catch {
-      // Don't fail the approval if email fails
+    for (const recipient of confirmEmails) {
+      try {
+        const result = await sendEmail({
+          to: recipient,
+          subject,
+          html,
+        });
+
+        await supabase.from("notifications_log").insert({
+          change_order_id: changeOrderId,
+          company_id: companyId,
+          channel: "email",
+          recipient,
+          template_type: `${action}_confirmation`,
+          external_id: result.id,
+          status: "sent",
+        });
+      } catch {
+        // Don't fail the approval if email fails
+      }
     }
   }
 
