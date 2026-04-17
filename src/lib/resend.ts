@@ -1,7 +1,7 @@
 import { Resend } from "resend";
 
 const apiKey = process.env.RESEND_API_KEY;
-const fromEmail = process.env.RESEND_FROM_EMAIL || "noreply@changeorderpro.com";
+const fromEmail = (process.env.RESEND_FROM_EMAIL || "noreply@changeorderpros.com").trim();
 
 function getClient() {
   if (!apiKey) {
