@@ -93,8 +93,23 @@ export async function GET(request: NextRequest) {
                 </div>
               `,
             });
-          } catch {
-            results.errors.push(`Escalation email to ${member.email} failed`);
+          } catch (err) {
+            const message = err instanceof Error ? err.message : "Unknown error";
+            console.error("[cron/reminders] escalation email failed", {
+              changeOrderId: co.id,
+              recipient: member.email,
+              error: message,
+            });
+            await supabase.from("notifications_log").insert({
+              change_order_id: co.id,
+              company_id: co.company_id,
+              channel: "email",
+              recipient: member.email,
+              template_type: "escalation",
+              status: "failed",
+              error_message: message,
+            });
+            results.errors.push(`Escalation email to ${member.email} failed: ${message}`);
           }
         }
       }
@@ -159,8 +174,23 @@ export async function GET(request: NextRequest) {
           external_id: smsResult.sid,
           status: "sent",
         });
-      } catch {
-        results.errors.push(`SMS reminder for ${co.co_number} failed`);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Unknown error";
+        console.error("[cron/reminders] SMS reminder failed", {
+          changeOrderId: co.id,
+          recipient: project.client_phone,
+          error: message,
+        });
+        await supabase.from("notifications_log").insert({
+          change_order_id: co.id,
+          company_id: co.company_id,
+          channel: "sms",
+          recipient: project.client_phone,
+          template_type: "reminder",
+          status: "failed",
+          error_message: message,
+        });
+        results.errors.push(`SMS reminder for ${co.co_number} failed: ${message}`);
       }
     }
 
@@ -191,8 +221,23 @@ export async function GET(request: NextRequest) {
           external_id: emailResult.id,
           status: "sent",
         });
-      } catch {
-        results.errors.push(`Email reminder for ${co.co_number} failed`);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Unknown error";
+        console.error("[cron/reminders] email reminder failed", {
+          changeOrderId: co.id,
+          recipient: project.client_email,
+          error: message,
+        });
+        await supabase.from("notifications_log").insert({
+          change_order_id: co.id,
+          company_id: co.company_id,
+          channel: "email",
+          recipient: project.client_email,
+          template_type: "reminder",
+          status: "failed",
+          error_message: message,
+        });
+        results.errors.push(`Email reminder for ${co.co_number} failed: ${message}`);
       }
     }
 

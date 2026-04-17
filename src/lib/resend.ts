@@ -5,6 +5,10 @@ const fromEmail = process.env.RESEND_FROM_EMAIL || "noreply@changeorderpro.com";
 
 function getClient() {
   if (!apiKey) {
+    console.error(
+      "[resend] RESEND_API_KEY is not set — email delivery is disabled. " +
+        "Set RESEND_API_KEY and RESEND_FROM_EMAIL in the environment."
+    );
     throw new Error("Resend API key not configured");
   }
   return new Resend(apiKey);
@@ -28,6 +32,13 @@ export async function sendEmail({ to, subject, html, replyTo }: SendEmailParams)
   });
 
   if (error) {
+    console.error("[resend] send failed", {
+      to,
+      subject,
+      from: fromEmail,
+      error: error.message,
+      name: error.name,
+    });
     throw new Error(`Resend error: ${error.message}`);
   }
 

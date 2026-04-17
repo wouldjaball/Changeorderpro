@@ -111,8 +111,23 @@ export async function POST(request: NextRequest) {
         external_id: result.id,
         status: "sent",
       });
-    } catch {
-      // Don't fail the approval if email fails
+    } catch (err) {
+      // Don't fail the approval if email fails, but record why it failed.
+      const message = err instanceof Error ? err.message : "Unknown error";
+      console.error("[approve] client confirmation email failed", {
+        changeOrderId,
+        recipient: project.client_email,
+        error: message,
+      });
+      await supabase.from("notifications_log").insert({
+        change_order_id: changeOrderId,
+        company_id: companyId,
+        channel: "email",
+        recipient: project.client_email,
+        template_type: `${action}_confirmation`,
+        status: "failed",
+        error_message: message,
+      });
     }
   }
 
@@ -140,8 +155,23 @@ export async function POST(request: NextRequest) {
           subject: `[${action.toUpperCase()}] ${subject}`,
           html,
         });
-      } catch {
-        // Don't fail if team notifications fail
+      } catch (err) {
+        // Don't fail if team notifications fail, but record the error.
+        const message = err instanceof Error ? err.message : "Unknown error";
+        console.error("[approve] team notification email failed", {
+          changeOrderId,
+          recipient: member.email,
+          error: message,
+        });
+        await supabase.from("notifications_log").insert({
+          change_order_id: changeOrderId,
+          company_id: companyId,
+          channel: "email",
+          recipient: member.email,
+          template_type: `${action}_team_notification`,
+          status: "failed",
+          error_message: message,
+        });
       }
     }
   }
