@@ -1,10 +1,19 @@
-import { getCompanyStats } from "@/lib/admin/queries";
+import {
+  getCompanyStats,
+  getTeamMembers,
+  getCompanyChangeOrders,
+  getCompanyEvents,
+} from "@/lib/admin/queries";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { PlanBadge } from "@/components/admin/shared/PlanBadge";
 import { StatusBadge } from "@/components/admin/shared/StatusBadge";
 import { formatAbsoluteDate, daysSinceDate } from "@/lib/admin/helpers";
+import { OverviewPanel } from "@/components/admin/profile/OverviewPanel";
+import { TeamPanel } from "@/components/admin/profile/TeamPanel";
+import { ChangeOrdersPanel } from "@/components/admin/profile/ChangeOrdersPanel";
+import { ActivityTimeline } from "@/components/admin/profile/ActivityTimeline";
 
 interface PageProps {
   params: Promise<{ companyId: string }>;
@@ -12,7 +21,13 @@ interface PageProps {
 
 export default async function CompanyProfilePage({ params }: PageProps) {
   const { companyId } = await params;
-  const stats = await getCompanyStats(companyId);
+
+  const [stats, team, changeOrders, events] = await Promise.all([
+    getCompanyStats(companyId),
+    getTeamMembers(companyId),
+    getCompanyChangeOrders(companyId),
+    getCompanyEvents(companyId, 30),
+  ]);
 
   if (!stats) {
     notFound();
@@ -42,9 +57,17 @@ export default async function CompanyProfilePage({ params }: PageProps) {
         </div>
       </div>
 
-      <div className="p-8 rounded-lg border bg-white text-center text-muted-foreground">
-        Full company profile coming in Phase 2.
+      <OverviewPanel stats={stats} />
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <TeamPanel members={team} />
+        <ActivityTimeline events={events} />
       </div>
+
+      <ChangeOrdersPanel
+        orders={changeOrders.data}
+        total={changeOrders.total}
+      />
     </div>
   );
 }
