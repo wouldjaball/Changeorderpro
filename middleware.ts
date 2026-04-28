@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { isAdminEmail } from "@/lib/admin/auth";
 
 export async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
@@ -31,20 +32,43 @@ export async function middleware(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
 
-  // Public routes that don't require auth
+  if (pathname.startsWith("/admin")) {
+    if (
+      pathname === "/admin/login" ||
+      pathname === "/admin/health" ||
+      pathname.startsWith("/admin/auth/")
+    ) {
+      return supabaseResponse;
+    }
+
+    if (!user?.email) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/admin/login";
+      return NextResponse.redirect(url);
+    }
+
+    if (!isAdminEmail(user.email)) {
+      await supabase.auth.signOut();
+      const url = request.nextUrl.clone();
+      url.pathname = "/admin/login";
+      url.searchParams.set("error", "unauthorized");
+      return NextResponse.redirect(url);
+    }
+
+    return supabaseResponse;
+  }
+
   const publicRoutes = ["/login", "/signup", "/approve", "/auth/callback", "/auth/confirm", "/privacy", "/terms"];
   const isPublicRoute = publicRoutes.some((route) =>
     pathname.startsWith(route)
   );
 
-  // Redirect unauthenticated users to login
   if (!user && !isPublicRoute) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);
   }
 
-  // Redirect authenticated users away from auth pages
   if (user && (pathname === "/login" || pathname === "/signup")) {
     const url = request.nextUrl.clone();
     url.pathname = "/";
