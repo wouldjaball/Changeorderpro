@@ -2,80 +2,84 @@
 
 ## Phase 0 — Setup & schema audit
 **Started:** 2026-04-28
+**Commit:** `91a409b` — chore: phase 0 setup and schema audit
 
 ### Schema audit results
 
-Compared actual Supabase schema (from migration files) against PRD §7.1. Significant deltas found — the PRD was written against an idealized schema. Actual schema is different in several ways:
+Compared actual Supabase schema (from migration files) against PRD §7.1. Significant deltas found — the PRD was written against an idealized schema.
 
-#### `companies` table
-- PRD says `industry` → actual is `trade_type` ✗
-- PRD says `address_line1, address_line2, city, state, postal_code, country` → actual is `address_street, address_city, address_state, address_zip` (no `country`) ✗
-- PRD says no `plan_tier` → actual has `plan_tier` with CHECK constraint (`starter`, `growth`, `pro`, `enterprise`) ✓ (different from PRD plan names)
-- PRD says no `stripe_customer_id` on companies → actual HAS `stripe_customer_id` on companies ✓
-- Has `trial_ends_at` on companies ✓
-- Has `settings` JSONB, `phone`, `trade_type` — not in PRD
-
-#### `users` table
-- PRD says `role` is text `owner|admin|member` → actual uses enum `user_role` (`admin`, `pm`, `contractor`) ✗
-- PRD says `is_owner boolean generated` → actual has no `is_owner` column ✗
-- PRD says `last_login_at` → actual has NO `last_login_at` column ✗
-- All users reference `auth.users(id)` ✓
-
-#### `change_orders` table
-- PRD says `amount numeric(12,2)` → actual has `fixed_amount` and `total_amount` DECIMAL(12,2) ✗
-- PRD says `customer_name, customer_email, customer_phone` on CO → actual has these on `projects` table ✗
-- PRD says `status` is text `draft|sent|viewed|approved|rejected|expired` → actual uses enum `co_status` (`draft`, `sent`, `approved`, `declined`, `void`, `invoiced`) ✗
-- PRD says `sent_via text` → actual has `approval_method` (different purpose) ✗
-- Has `project_id` FK to `projects` — not in PRD schema
-- No `responded_at` — has `approved_at` and `declined_at` instead
-
-#### `subscriptions` table
-- **DOES NOT EXIST** ✗
-- Subscription data lives on `companies` directly (`plan_tier`, `stripe_customer_id`, `trial_ends_at`)
-- No `monthly_amount`, `status`, `plan_name` etc.
-- MRR calculation will need a different approach
-
-#### `messages` table
-- **DOES NOT EXIST** ✗
-- Equivalent is `notifications_log` with different columns:
-  - `channel` exists ✓ (values: `sms`, `email`)
-  - `recipient` instead of `to_address`
-  - `status` has values: `sent`, `delivered`, `failed`, `bounced`, `opened`, `clicked`
-  - No `provider_id` — has `external_id` instead
-  - No `delivered_at` — track via status
-
-#### Additional tables in actual schema not in PRD
-- `projects` — job/project records linked to companies
-- `co_line_items` — line items on change orders
-- `co_photos` — photos attached to COs
-- `approval_events` — approval/decline/view events
-- `audit_log` — existing audit log (different from PRD's `admin_audit_log`)
+**Key deltas:**
+- `companies.trade_type` (not `industry`), address columns differ, has `plan_tier` enum
+- `users.role` is enum `admin|pm|contractor` (not `owner|admin|member`), no `last_login_at`
+- `change_orders` has `total_amount`/`fixed_amount` (not `amount`), customer info on `projects`
+- No `subscriptions` table — plan data lives on `companies` directly
+- No `messages` table — equivalent is `notifications_log`
 
 ### Decisions
+- D-build-01: Adapted all queries to actual column names
+- D-build-02: MRR shows as $0.00 until Stripe webhook adds subscription amounts
+- D-build-03: `notifications_log` used wherever PRD says `messages`
+- D-build-04: First admin user by `created_at` treated as owner
+- D-build-05: `total_amount` used for CO value, `client_name` from projects table
+- D-build-06: No `last_login_at` — shows "—" (not adding column to avoid modifying customer tables)
 
-- D-build-01: Will adapt all queries to use actual column names, not PRD idealized names. PRD is the functional spec; schema differences are implementation details.
-- D-build-02: Since no `subscriptions` table exists, the "Plan" and "Status" columns in the companies list will read from `companies.plan_tier` and derive status from `trial_ends_at`. No MRR calculation possible in v1 without `monthly_amount`. Will show plan_tier instead and note MRR as N/A until Stripe webhook sync adds subscription data.
-- D-build-03: `notifications_log` will be used in place of `messages` everywhere the PRD references messages.
-- D-build-04: `users.role = 'admin'` will be treated as the "owner" equivalent since there's no `owner` role. The first user (by `created_at`) with role `admin` on a company will be treated as the owner.
-- D-build-05: `change_orders.total_amount` will be used for `amount` calculations. `customer_name` will be sourced from `projects.client_name` via the `project_id` FK.
-- D-build-06: Since there's no `last_login_at` on users, "days since last login" will show as "—" until we add that column. Not adding it in v1 to avoid modifying customer-facing tables.
-- D-build-07: Using `nuqs` for URL state management per PRD recommendation.
-- D-build-08: Env var `NEXT_PUBLIC_SUPABASE_URL` already exists (PRD says `SUPABASE_URL`). Will use existing names. Adding `SUPABASE_URL` as alias pointing to same value for the admin service-role client.
+---
 
-### Env var audit
-- `NEXT_PUBLIC_SUPABASE_URL` ✓ (PRD calls it `SUPABASE_URL`)
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY` ✓ (PRD calls it `SUPABASE_ANON_KEY`)
-- `SUPABASE_SERVICE_ROLE_KEY` ✓
-- `ADMIN_ALLOWLIST` ✓ (set to `aaron@salesmonsters.com`)
-- `NEXT_PUBLIC_SITE_URL` ✗ MISSING — will use `NEXT_PUBLIC_APP_URL` which exists
-- `SENTRY_DSN` ✗ MISSING — will stub Sentry init, works without DSN
-- `STRIPE_DASHBOARD_BASE_URL` ✗ MISSING — will hardcode `https://dashboard.stripe.com`
+## Phase 1 — MVP
+**Commit:** `8ff5947` — feat: phase 1 — admin monitoring MVP
 
-### Project config audit
-- Next.js 16.1.6 with App Router ✓
-- TypeScript strict mode ✓
-- shadcn/ui already installed ✓
-- Existing middleware.ts at project root ✓ (will extend for admin routes)
+### Deliverables
+- 7 migrations (events, indexes, 2 mat views, admin_audit_log, pg_cron, trend RPCs)
+- 7 rollback scripts
+- Auth: middleware guard, magic link login, callback, signout
+- Admin shell: sidebar, topbar, layout (conditional for login page)
+- Dashboard: 5 KPI cards with delta indicators
+- Companies list: sortable table with search, plan/status/channel badges
+- Company profile stub
+- Health endpoint: /admin/health
+- Backfill script: scripts/backfill-events.ts
+- 19 unit tests (auth + helpers)
 
-### Commits
-- (pending)
+---
+
+## Phase 2 — Company Profile
+**Commit:** `273db67` — feat: phase 2 — full company profile page
+
+### Deliverables
+- OverviewPanel: 13 key metrics in a 4-column grid
+- TeamPanel: members table with name, email, role, join date
+- ChangeOrdersPanel: CO history table with status badges and amounts
+- ActivityTimeline: event feed with color-coded event type dots
+- All panels load in parallel via Promise.all
+
+---
+
+## Phase 3 — Polish
+**Commit:** `b5c4eff` — feat: phase 3 — charts, filters, CSV export, activity feed
+
+### Deliverables
+- TrendChart: 12-week area charts for signups and change orders (recharts)
+- ActivityFeed: recent platform-wide events on dashboard
+- CompanyFilters: plan, status, channel, activity level, date range
+- CsvExportButton: downloadable CSV of current company list
+- New migration: get_signups_trend, get_cos_trend, refresh_admin_views RPCs
+
+---
+
+## Phase 4 — Final Review
+**Date:** 2026-04-28
+
+### Verification gate results
+- `tsc --noEmit`: PASS (0 errors from admin code)
+- `npm run lint`: 0 new issues from admin code (9 pre-existing warnings/errors unchanged)
+- `npm run test`: 19/19 PASS
+- `npm run build`: SUCCESS
+
+### File count
+- 57 files changed across all phases
+- 7 migrations + 7 rollbacks
+- 16 new components
+- 6 new lib modules
+- 5 new pages/routes
+- 2 test files (19 tests)
+- 1 backfill script
