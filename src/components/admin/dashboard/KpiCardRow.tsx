@@ -14,12 +14,14 @@ export function KpiCardRow({ stats }: KpiCardRowProps) {
         value={stats.total_companies.toLocaleString()}
         current={stats.signups_last_30d + stats.signups_prior_30d}
         previous={stats.signups_prior_30d}
+        href="/admin/companies"
       />
       <KpiCard
         label="Active (30d)"
         value={stats.active_companies_30d.toLocaleString()}
         current={stats.active_companies_30d}
         previous={0}
+        href="/admin/companies?activity=active_30"
       />
       <KpiCard
         label="Total COs"
@@ -38,6 +40,7 @@ export function KpiCardRow({ stats }: KpiCardRowProps) {
         value={formatCurrency(stats.mrr)}
         current={0}
         previous={0}
+        href="/admin/companies?sortBy=monthly_amount&sortDir=desc"
       />
     </div>
   );

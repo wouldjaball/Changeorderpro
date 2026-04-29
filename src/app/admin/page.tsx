@@ -7,8 +7,11 @@ import {
 import { KpiCardRow } from "@/components/admin/dashboard/KpiCardRow";
 import { TrendChart } from "@/components/admin/dashboard/TrendChart";
 import { ActivityFeed } from "@/components/admin/dashboard/ActivityFeed";
+import { RefreshButton } from "@/components/admin/dashboard/RefreshButton";
 import { formatRelativeTime } from "@/lib/admin/helpers";
 import { AlertCircle } from "lucide-react";
+
+const STALE_THRESHOLD_MS = 24 * 60 * 60 * 1000;
 
 export default async function AdminDashboard() {
   const [stats, signupsTrend, cosTrend, recentEvents] = await Promise.all([
@@ -31,24 +34,27 @@ export default async function AdminDashboard() {
   }
 
   const refreshedAt = stats.refreshed_at;
-  const isStale =
-    new Date(refreshedAt).getTime() < Date.now() - 24 * 60 * 60 * 1000;
+  const refreshedMs = new Date(refreshedAt).getTime();
+  const isStale = new Date().getTime() - refreshedMs > STALE_THRESHOLD_MS;
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Dashboard</h1>
-        <p className="text-sm text-muted-foreground">
-          Stats refreshed {formatRelativeTime(refreshedAt)}
-          {isStale && (
-            <span
-              className="ml-2 text-amber-600"
-              title="Stats are more than 24 hours old"
-            >
-              (stale)
-            </span>
-          )}
-        </p>
+        <div className="flex items-center gap-3">
+          <p className="text-sm text-muted-foreground">
+            Stats refreshed {formatRelativeTime(refreshedAt)}
+            {isStale && (
+              <span
+                className="ml-2 text-amber-600"
+                title="Stats are more than 24 hours old"
+              >
+                (stale)
+              </span>
+            )}
+          </p>
+          <RefreshButton />
+        </div>
       </div>
 
       <KpiCardRow stats={stats} />
