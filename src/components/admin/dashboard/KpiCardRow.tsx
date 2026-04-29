@@ -28,12 +28,14 @@ export function KpiCardRow({ stats }: KpiCardRowProps) {
         value={stats.total_change_orders.toLocaleString()}
         current={stats.cos_last_30d}
         previous={stats.cos_prior_30d}
+        href="/admin/companies?sortBy=total_change_orders&sortDir=desc"
       />
       <KpiCard
         label="COs This Month"
         value={stats.change_orders_this_month.toLocaleString()}
         current={stats.cos_last_30d}
         previous={stats.cos_prior_30d}
+        href="/admin/companies?sortBy=change_orders_this_month&sortDir=desc"
       />
       <KpiCard
         label="MRR"
