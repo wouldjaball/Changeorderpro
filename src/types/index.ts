@@ -91,6 +91,9 @@ export interface ChangeOrder {
   sent_at: string | null;
   approved_at: string | null;
   declined_at: string | null;
+  edit_count: number;
+  last_edited_at: string | null;
+  last_edited_by: string | null;
   created_by: string | null;
   created_at: string;
   updated_at: string;
@@ -193,6 +196,17 @@ export interface CreateLineItemForm {
   unit: string;
   rate: number;
   item_type: LineItemType;
+}
+
+export interface UpdateCOForm {
+  title?: string;
+  description?: string | null;
+  pricing_type?: PricingType;
+  fixed_amount?: number | null;
+  internal_notes?: string | null;
+  start_date?: string | null;
+  completion_date?: string | null;
+  line_items?: CreateLineItemForm[];
 }
 
 export interface CompanySetupForm {

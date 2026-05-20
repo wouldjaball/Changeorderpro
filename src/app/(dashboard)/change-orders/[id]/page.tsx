@@ -14,6 +14,7 @@ import {
   XCircle,
   Eye,
   Bell,
+  Pencil,
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
@@ -71,9 +72,21 @@ export default async function ChangeOrderDetailPage({
     .eq("change_order_id", id)
     .order("created_at", { ascending: false });
 
+  const { data: editHistory } = await supabase
+    .from("audit_log")
+    .select("*, editor:users!audit_log_user_id_fkey(full_name)")
+    .eq("table_name", "change_orders")
+    .eq("record_id", id)
+    .eq("action", "edited")
+    .order("created_at", { ascending: false })
+    .limit(20);
+
   const project = co.project && !Array.isArray(co.project) ? co.project : null;
   const status = statusConfig[co.status] || statusConfig.draft;
   const StatusIcon = status.icon;
+
+  const canEdit = ["draft", "sent", "declined"].includes(co.status);
+  const editHref = `/change-orders/${id}/edit`;
 
   const eventIcons: Record<string, typeof CheckCircle> = {
     approved: CheckCircle,
@@ -99,7 +112,23 @@ export default async function ChangeOrderDetailPage({
             </Badge>
           </div>
           <h1 className="text-xl font-bold mt-0.5">{co.title}</h1>
+          {co.edit_count > 0 && co.last_edited_at && (
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Revision {co.edit_count} &middot; last edited{" "}
+              {new Date(co.last_edited_at).toLocaleString()}
+            </p>
+          )}
         </div>
+        {canEdit && (
+          <Button
+            variant="outline"
+            size="icon"
+            render={<Link href={editHref} />}
+            title="Edit change order"
+          >
+            <Pencil className="h-4 w-4" />
+          </Button>
+        )}
       </div>
 
       {/* Project info */}
@@ -121,7 +150,14 @@ export default async function ChangeOrderDetailPage({
       {co.description && (
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-base">Description</CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base">Description</CardTitle>
+              {canEdit && (
+                <Link href={editHref} className="text-muted-foreground hover:text-foreground transition-colors" title="Edit description">
+                  <Pencil className="h-3.5 w-3.5" />
+                </Link>
+              )}
+            </div>
           </CardHeader>
           <CardContent>
             <p className="text-base whitespace-pre-wrap">{co.description}</p>
@@ -132,7 +168,14 @@ export default async function ChangeOrderDetailPage({
       {/* Pricing */}
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-base">Pricing</CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-base">Pricing</CardTitle>
+            {canEdit && (
+              <Link href={editHref} className="text-muted-foreground hover:text-foreground transition-colors" title="Edit pricing">
+                <Pencil className="h-3.5 w-3.5" />
+              </Link>
+            )}
+          </div>
         </CardHeader>
         <CardContent className="space-y-3">
           <Badge variant="outline" className="text-sm">
@@ -190,7 +233,14 @@ export default async function ChangeOrderDetailPage({
       {photos && photos.length > 0 && (
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-base">Photos ({photos.length})</CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base">Photos ({photos.length})</CardTitle>
+              {canEdit && (
+                <Link href={editHref} className="text-muted-foreground hover:text-foreground transition-colors" title="Edit photos">
+                  <Pencil className="h-3.5 w-3.5" />
+                </Link>
+              )}
+            </div>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-3 gap-2">
@@ -217,12 +267,51 @@ export default async function ChangeOrderDetailPage({
       {co.internal_notes && (
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-base text-muted-foreground">
-              Internal Notes (not visible to client)
-            </CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base text-muted-foreground">
+                Internal Notes (not visible to client)
+              </CardTitle>
+              {canEdit && (
+                <Link href={editHref} className="text-muted-foreground hover:text-foreground transition-colors" title="Edit notes">
+                  <Pencil className="h-3.5 w-3.5" />
+                </Link>
+              )}
+            </div>
           </CardHeader>
           <CardContent>
             <p className="text-base">{co.internal_notes}</p>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Edit history */}
+      {editHistory && editHistory.length > 0 && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">Edit History</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {editHistory.map((entry) => {
+                const editor =
+                  entry.editor && !Array.isArray(entry.editor)
+                    ? entry.editor
+                    : null;
+                return (
+                  <div key={entry.id} className="flex items-start gap-3">
+                    <Pencil className="h-4 w-4 mt-0.5 text-muted-foreground" />
+                    <div className="text-base">
+                      <p className="font-medium">
+                        Edited by {editor?.full_name || "team member"}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        {new Date(entry.created_at).toLocaleString()}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </CardContent>
         </Card>
       )}
@@ -280,21 +369,31 @@ export default async function ChangeOrderDetailPage({
           </SendDialog>
         )}
         {co.status === "sent" && (
-          <SendDialog
-            changeOrderId={co.id}
-            coNumber={co.co_number}
-            coTitle={co.title}
-            clientName={project?.client_name || undefined}
-            clientEmail={project?.client_email || undefined}
-            clientEmails={(project?.client_emails as string[]) || []}
-            clientPhone={project?.client_phone || undefined}
-            smsConsent={project?.sms_consent || false}
-          >
-            <Button variant="outline" className="flex-1 h-12">
-              <Send className="mr-2 h-4 w-4" />
-              Resend for Approval
+          <>
+            <Button
+              variant="outline"
+              className="h-12"
+              render={<Link href={editHref} />}
+            >
+              <Pencil className="mr-2 h-4 w-4" />
+              Edit
             </Button>
-          </SendDialog>
+            <SendDialog
+              changeOrderId={co.id}
+              coNumber={co.co_number}
+              coTitle={co.title}
+              clientName={project?.client_name || undefined}
+              clientEmail={project?.client_email || undefined}
+              clientEmails={(project?.client_emails as string[]) || []}
+              clientPhone={project?.client_phone || undefined}
+              smsConsent={project?.sms_consent || false}
+            >
+              <Button variant="outline" className="flex-1 h-12">
+                <Send className="mr-2 h-4 w-4" />
+                Resend for Approval
+              </Button>
+            </SendDialog>
+          </>
         )}
         {co.status === "approved" && (
           <Badge className="flex-1 h-12 justify-center text-base bg-green-100 text-green-800">
