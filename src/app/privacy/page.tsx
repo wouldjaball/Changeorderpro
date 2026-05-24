@@ -17,7 +17,7 @@ export default function PrivacyPolicyPage() {
     <div className="min-h-screen bg-background">
       <header className="border-b bg-white">
         <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-4">
-          <Link href="/" className="flex items-center gap-2">
+          <Link href="/dashboard" className="flex items-center gap-2">
             <Image
               src="/logo.png"
               alt="ChangeOrder Pro"

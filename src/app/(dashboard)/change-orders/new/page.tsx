@@ -308,7 +308,7 @@ export default function NewChangeOrderPage() {
 
   return (
     <div className="space-y-4 max-w-lg mx-auto">
-      <Button variant="ghost" size="sm" render={<Link href="/" />}>
+      <Button variant="ghost" size="sm" render={<Link href="/dashboard" />}>
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back
       </Button>

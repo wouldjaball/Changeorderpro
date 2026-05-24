@@ -31,12 +31,12 @@ export async function updateSession(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
 
-  // Public routes that don't require auth
   const publicRoutes = ["/login", "/signup", "/approve", "/privacy", "/terms"];
   const isPublicRoute = publicRoutes.some((route) => pathname.startsWith(route));
+  const isLandingPage = pathname === "/";
 
   // Redirect unauthenticated users to login
-  if (!user && !isPublicRoute && pathname !== "/") {
+  if (!user && !isPublicRoute && !isLandingPage) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);
@@ -45,7 +45,7 @@ export async function updateSession(request: NextRequest) {
   // Redirect authenticated users away from auth pages
   if (user && (pathname === "/login" || pathname === "/signup")) {
     const url = request.nextUrl.clone();
-    url.pathname = "/";
+    url.pathname = "/dashboard";
     return NextResponse.redirect(url);
   }
 

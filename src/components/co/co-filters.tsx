@@ -37,13 +37,13 @@ export function COFilters({ projects }: COFiltersProps) {
       } else {
         params.delete(key);
       }
-      router.push(`/?${params.toString()}`);
+      router.push(`/dashboard?${params.toString()}`);
     },
     [router, searchParams]
   );
 
   const clearFilters = useCallback(() => {
-    router.push("/");
+    router.push("/dashboard");
   }, [router]);
 
   const hasFilters = currentStatus !== "all" || currentProject !== "all" || currentSearch !== "";

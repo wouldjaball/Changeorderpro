@@ -112,7 +112,7 @@ export default function CompanySetupPage() {
     }
 
     toast.success("Company created! Welcome to ChangeOrder Pro.");
-    router.push("/");
+    router.push("/dashboard");
     router.refresh();
   }
 

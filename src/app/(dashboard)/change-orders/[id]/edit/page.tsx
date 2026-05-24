@@ -73,7 +73,7 @@ export default function EditChangeOrderPage() {
 
       if (error || !co) {
         toast.error("Change order not found");
-        router.push("/");
+        router.push("/dashboard");
         return;
       }
 
