@@ -184,3 +184,90 @@ export function emailApprovalConfirmation(params: {
 
   return { subject, html };
 }
+
+export function emailWelcome(params: {
+  name: string;
+}): { subject: string; html: string } {
+  const subject = "Welcome to Change Order Pros";
+
+  const html = `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 0; background-color: #f5f5f5;">
+  <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+    <div style="background: white; border-radius: 12px; padding: 32px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+      <h1 style="margin: 0 0 16px; color: #1a1a1a; font-size: 24px; text-align: center;">Welcome, ${params.name}!</h1>
+
+      <p style="font-size: 16px; color: #333; line-height: 1.6; margin: 0 0 16px;">
+        Your 14-day free trial just started. Here's what you can do right now:
+      </p>
+
+      <div style="background: #f9fafb; border-radius: 8px; padding: 20px; margin: 16px 0;">
+        <div style="margin-bottom: 12px;">
+          <strong style="color: #1e3a5f;">1. Set up your company</strong>
+          <p style="font-size: 14px; color: #666; margin: 4px 0 0;">Company name, trade type, and you're done. Takes 2 minutes.</p>
+        </div>
+        <div style="margin-bottom: 12px;">
+          <strong style="color: #1e3a5f;">2. Create your first project</strong>
+          <p style="font-size: 14px; color: #666; margin: 4px 0 0;">Add the job name and your customer's phone number or email.</p>
+        </div>
+        <div>
+          <strong style="color: #1e3a5f;">3. Send a change order</strong>
+          <p style="font-size: 14px; color: #666; margin: 4px 0 0;">Photo, scope, price, signature. 60 seconds from the job site.</p>
+        </div>
+      </div>
+
+      <div style="text-align: center; margin: 24px 0 16px;">
+        <a href="https://changeorderpros.com/login" style="display: inline-block; background: #e8720c; color: white; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 16px;">Log In and Get Started</a>
+      </div>
+
+      <p style="font-size: 14px; color: #666; text-align: center; margin: 16px 0 0;">
+        Questions? Just reply to this email. A real person reads it.
+      </p>
+    </div>
+
+    <p style="font-size: 11px; color: #999; text-align: center; margin-top: 16px;">
+      Change Order Pros | Stop eating unpaid change orders.
+    </p>
+  </div>
+</body>
+</html>`;
+
+  return { subject, html };
+}
+
+export function emailNewSignupNotification(params: {
+  name: string;
+  email: string;
+  phone: string | null;
+}): { subject: string; html: string } {
+  const subject = `New signup: ${params.name} (${params.email})`;
+
+  const html = `
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 20px; background-color: #f5f5f5;">
+  <div style="max-width: 500px; margin: 0 auto; background: white; border-radius: 12px; padding: 24px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+    <h2 style="margin: 0 0 16px; color: #1e3a5f;">New Change Order Pros Signup</h2>
+    <table style="width: 100%; border-collapse: collapse;">
+      <tr>
+        <td style="padding: 8px 0; color: #666; font-size: 14px;">Name</td>
+        <td style="padding: 8px 0; text-align: right; font-weight: 600;">${params.name}</td>
+      </tr>
+      <tr>
+        <td style="padding: 8px 0; color: #666; font-size: 14px;">Email</td>
+        <td style="padding: 8px 0; text-align: right;"><a href="mailto:${params.email}" style="color: #1e3a5f;">${params.email}</a></td>
+      </tr>
+      <tr>
+        <td style="padding: 8px 0; color: #666; font-size: 14px;">Phone</td>
+        <td style="padding: 8px 0; text-align: right;">${params.phone || "Not provided"}</td>
+      </tr>
+    </table>
+  </div>
+</body>
+</html>`;
+
+  return { subject, html };
+}

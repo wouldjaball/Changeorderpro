@@ -23,6 +23,7 @@ export default function SignupPage() {
   const supabase = createClient();
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -41,7 +42,7 @@ export default function SignupPage() {
       email,
       password,
       options: {
-        data: { full_name: fullName },
+        data: { full_name: fullName, phone: phone || undefined },
         emailRedirectTo: `${window.location.origin}/auth/callback?next=/company-setup`,
       },
     });
@@ -51,6 +52,14 @@ export default function SignupPage() {
       setLoading(false);
       return;
     }
+
+    try {
+      await fetch("/api/auth/signup-webhook", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: fullName, email, phone: phone || null }),
+      });
+    } catch {}
 
     setSuccess(true);
     setLoading(false);
@@ -107,6 +116,17 @@ export default function SignupPage() {
               onChange={(e) => setEmail(e.target.value)}
               required
               autoComplete="email"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="phone">Phone number</Label>
+            <Input
+              id="phone"
+              type="tel"
+              placeholder="(555) 123-4567"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              autoComplete="tel"
             />
           </div>
           <div className="space-y-2">

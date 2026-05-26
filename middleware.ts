@@ -58,12 +58,13 @@ export async function middleware(request: NextRequest) {
     return supabaseResponse;
   }
 
-  const publicRoutes = ["/login", "/signup", "/approve", "/auth/callback", "/auth/confirm", "/privacy", "/terms"];
+  const publicRoutes = ["/login", "/signup", "/approve", "/auth/callback", "/auth/confirm", "/privacy", "/terms", "/trial-expired", "/api/auth/signup-webhook"];
   const isPublicRoute = publicRoutes.some((route) =>
     pathname.startsWith(route)
   );
+  const isLandingPage = pathname === "/";
 
-  if (!user && !isPublicRoute) {
+  if (!user && !isPublicRoute && !isLandingPage) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);
@@ -71,8 +72,37 @@ export async function middleware(request: NextRequest) {
 
   if (user && (pathname === "/login" || pathname === "/signup")) {
     const url = request.nextUrl.clone();
-    url.pathname = "/";
+    url.pathname = "/dashboard";
     return NextResponse.redirect(url);
+  }
+
+  if (user && !isPublicRoute && !isLandingPage && !pathname.startsWith("/api") && !pathname.startsWith("/company-setup")) {
+    const { data: profile } = await supabase
+      .from("users")
+      .select("company_id")
+      .eq("id", user.id)
+      .single();
+
+    if (profile?.company_id) {
+      const { data: company } = await supabase
+        .from("companies")
+        .select("trial_ends_at, stripe_customer_id")
+        .eq("id", profile.company_id)
+        .single();
+
+      if (
+        company &&
+        !company.stripe_customer_id &&
+        company.trial_ends_at &&
+        new Date(company.trial_ends_at) < new Date()
+      ) {
+        if (pathname !== "/trial-expired") {
+          const url = request.nextUrl.clone();
+          url.pathname = "/trial-expired";
+          return NextResponse.redirect(url);
+        }
+      }
+    }
   }
 
   return supabaseResponse;
