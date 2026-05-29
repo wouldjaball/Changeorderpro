@@ -53,7 +53,7 @@ export default function LandingPage() {
             Change Order Pros
           </Link>
           <div className="flex items-center gap-3">
-            <Link href="/login" className="text-white/80 hover:text-white text-sm font-medium no-underline hidden sm:block">
+            <Link href="/login" className="text-white/80 hover:text-white text-sm font-medium no-underline">
               Log In
             </Link>
             <Link
