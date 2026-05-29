@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { LogOut, Moon, Sun, User } from "lucide-react";
+import { LogOut, Moon, Sun, User, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -18,9 +18,10 @@ import { createClient } from "@/lib/supabase/client";
 interface TopBarProps {
   userName?: string;
   companyName?: string;
+  isAdmin?: boolean;
 }
 
-export function TopBar({ userName, companyName }: TopBarProps) {
+export function TopBar({ userName, companyName, isAdmin }: TopBarProps) {
   const router = useRouter();
   const { theme, setTheme } = useTheme();
   const supabase = createClient();
@@ -97,6 +98,12 @@ export function TopBar({ userName, companyName }: TopBarProps) {
                   <User className="mr-2 h-4 w-4" />
                   Settings
               </DropdownMenuItem>
+              {isAdmin && (
+                <DropdownMenuItem render={<Link href="/admin" />}>
+                    <Shield className="mr-2 h-4 w-4" />
+                    Admin Panel
+                </DropdownMenuItem>
+              )}
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={handleSignOut}>
                 <LogOut className="mr-2 h-4 w-4" />

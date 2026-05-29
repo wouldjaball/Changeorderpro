@@ -21,14 +21,46 @@ import type { Company, CompanySettings } from "@/types";
 
 interface SettingsFormProps {
   company: Company;
+  userEmail: string;
+  userName: string;
 }
 
-export function SettingsForm({ company }: SettingsFormProps) {
+export function SettingsForm({ company, userEmail, userName: initialUserName }: SettingsFormProps) {
   const router = useRouter();
   const supabase = createClient();
   const [loading, setLoading] = useState(false);
   const [logoUrl, setLogoUrl] = useState(company.logo_url || "");
   const [logoUploading, setLogoUploading] = useState(false);
+
+  const [accountName, setAccountName] = useState(initialUserName);
+  const [newEmail, setNewEmail] = useState("");
+  const [emailLoading, setEmailLoading] = useState(false);
+  const [nameLoading, setNameLoading] = useState(false);
+
+  async function handleUpdateName() {
+    if (!accountName.trim()) return;
+    setNameLoading(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      await supabase.from("users").update({ full_name: accountName.trim() }).eq("id", user.id);
+    }
+    toast.success("Name updated");
+    setNameLoading(false);
+    router.refresh();
+  }
+
+  async function handleUpdateEmail() {
+    if (!newEmail.trim()) return;
+    setEmailLoading(true);
+    const { error } = await supabase.auth.updateUser({ email: newEmail.trim() });
+    if (error) {
+      toast.error(error.message);
+    } else {
+      toast.success("Confirmation email sent to both your current and new address. Check your inbox.");
+      setNewEmail("");
+    }
+    setEmailLoading(false);
+  }
 
   async function handleLogoUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -119,6 +151,64 @@ export function SettingsForm({ company }: SettingsFormProps) {
 
   return (
     <form onSubmit={handleSave} className="space-y-6">
+      {/* Account */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Your Account</CardTitle>
+          <CardDescription className="text-xs">
+            Your personal login details
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="accountName">Your name</Label>
+            <div className="flex gap-2">
+              <Input
+                id="accountName"
+                value={accountName}
+                onChange={(e) => setAccountName(e.target.value)}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleUpdateName}
+                disabled={nameLoading || accountName === initialUserName}
+              >
+                {nameLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Update"}
+              </Button>
+            </div>
+          </div>
+          <Separator />
+          <div className="space-y-2">
+            <Label>Current email</Label>
+            <p className="text-sm text-muted-foreground">{userEmail}</p>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="newEmail">Change email</Label>
+            <div className="flex gap-2">
+              <Input
+                id="newEmail"
+                type="email"
+                placeholder="new@email.com"
+                value={newEmail}
+                onChange={(e) => setNewEmail(e.target.value)}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleUpdateEmail}
+                disabled={emailLoading || !newEmail.trim()}
+              >
+                {emailLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Update"}
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              A confirmation link will be sent to both addresses
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Company info */}
       <Card>
         <CardHeader>

@@ -19,7 +19,7 @@ export default async function SettingsPage() {
 
   const { data: profile } = await supabase
     .from("users")
-    .select("company_id, role")
+    .select("company_id, role, full_name")
     .eq("id", user.id)
     .single();
 
@@ -48,7 +48,7 @@ export default async function SettingsPage() {
   return (
     <div className="space-y-6 max-w-lg mx-auto">
       <h1 className="text-2xl font-bold">Company Settings</h1>
-      <SettingsForm company={company} />
+      <SettingsForm company={company} userEmail={user.email || ""} userName={profile.full_name || ""} />
     </div>
   );
 }

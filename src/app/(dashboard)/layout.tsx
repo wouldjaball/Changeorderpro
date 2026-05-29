@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { TopBar } from "@/components/layout/top-bar";
 import { BottomNav } from "@/components/layout/bottom-nav";
 import { DesktopSidebar } from "@/components/layout/desktop-sidebar";
+import { isAdminEmail } from "@/lib/admin/auth";
 
 export default async function DashboardLayout({
   children,
@@ -44,6 +45,7 @@ export default async function DashboardLayout({
       <TopBar
         userName={profile?.full_name}
         companyName={companyName}
+        isAdmin={!!user.email && isAdminEmail(user.email)}
       />
       <div className="flex flex-1">
         <DesktopSidebar />
