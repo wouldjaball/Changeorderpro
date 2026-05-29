@@ -1,8 +1,11 @@
+export const dynamic = "force-dynamic";
+
 import {
   getPlatformStats,
   getSignupsTrend,
   getChangeOrdersTrend,
   getRecentEvents,
+  refreshMaterializedViews,
 } from "@/lib/admin/queries";
 import { KpiCardRow } from "@/components/admin/dashboard/KpiCardRow";
 import { TrendChart } from "@/components/admin/dashboard/TrendChart";
@@ -14,6 +17,8 @@ import { AlertCircle } from "lucide-react";
 const STALE_THRESHOLD_MS = 24 * 60 * 60 * 1000;
 
 export default async function AdminDashboard() {
+  await refreshMaterializedViews();
+
   const [stats, signupsTrend, cosTrend, recentEvents] = await Promise.all([
     getPlatformStats(),
     getSignupsTrend(),

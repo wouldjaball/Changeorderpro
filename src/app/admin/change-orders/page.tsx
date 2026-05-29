@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import Link from "next/link";
 import { getAllChangeOrders } from "@/lib/admin/queries";
 import { formatCurrency, formatAbsoluteDate } from "@/lib/admin/helpers";

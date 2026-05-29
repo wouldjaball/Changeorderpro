@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { getCompanyList } from "@/lib/admin/queries";
 import { CompanyTable } from "@/components/admin/companies/CompanyTable";
 import { CompanyFilters } from "@/components/admin/companies/CompanyFilters";
