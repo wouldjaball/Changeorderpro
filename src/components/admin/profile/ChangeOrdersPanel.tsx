@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatCurrency, formatAbsoluteDate } from "@/lib/admin/helpers";
@@ -52,8 +53,12 @@ export function ChangeOrdersPanel({ orders, total }: ChangeOrdersPanelProps) {
             </thead>
             <tbody>
               {orders.map((co) => (
-                <tr key={co.id} className="border-b last:border-0">
-                  <td className="py-2 font-mono">{co.co_number}</td>
+                <tr key={co.id} className="border-b last:border-0 hover:bg-gray-50 transition-colors">
+                  <td className="py-2">
+                    <Link href={`/admin/change-orders/${co.id}`} className="font-mono text-blue-600 hover:underline">
+                      {co.co_number}
+                    </Link>
+                  </td>
                   <td className="py-2">{co.customer_name || "—"}</td>
                   <td className="py-2 text-right">{formatCurrency(co.total_amount)}</td>
                   <td className="py-2">

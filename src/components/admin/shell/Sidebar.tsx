@@ -1,4 +1,4 @@
-import { Building2, LayoutDashboard } from "lucide-react";
+import { Building2, LayoutDashboard, FileText } from "lucide-react";
 import Link from "next/link";
 
 interface SidebarProps {
@@ -8,6 +8,7 @@ interface SidebarProps {
 const navItems = [
   { icon: LayoutDashboard, label: "Dashboard", href: "/admin" },
   { icon: Building2, label: "Companies", href: "/admin/companies" },
+  { icon: FileText, label: "Change Orders", href: "/admin/change-orders" },
 ];
 
 export function Sidebar({ activePath }: SidebarProps) {

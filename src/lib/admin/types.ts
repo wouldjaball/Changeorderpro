@@ -99,3 +99,68 @@ export interface WeeklyTrendPoint {
   week_start: string;
   count: number;
 }
+
+export interface ChangeOrderDetail {
+  id: string;
+  co_number: string;
+  title: string;
+  description: string | null;
+  pricing_type: string;
+  fixed_amount: number | null;
+  total_amount: number | null;
+  status: string;
+  approval_method: string | null;
+  internal_notes: string | null;
+  start_date: string | null;
+  completion_date: string | null;
+  sent_at: string | null;
+  approved_at: string | null;
+  declined_at: string | null;
+  edit_count: number;
+  created_at: string;
+  company_id: string;
+  company_name: string;
+  project_name: string;
+  client_name: string | null;
+  client_email: string | null;
+  client_phone: string | null;
+  created_by_name: string | null;
+  line_items: {
+    id: string;
+    description: string;
+    quantity: number;
+    unit: string;
+    rate: number | null;
+    amount: number | null;
+    item_type: string;
+    sort_order: number;
+  }[];
+  photos: {
+    id: string;
+    original_url: string;
+    annotated_url: string | null;
+    file_name: string | null;
+    sort_order: number;
+  }[];
+  approval_events: {
+    id: string;
+    action: string;
+    method: string | null;
+    client_name_typed: string | null;
+    ip_address: string | null;
+    created_at: string;
+  }[];
+}
+
+export interface ChangeOrderListRow {
+  id: string;
+  co_number: string;
+  title: string;
+  customer_name: string | null;
+  total_amount: number | null;
+  status: string;
+  sent_via: string | null;
+  created_at: string;
+  company_id: string;
+  company_name: string;
+}

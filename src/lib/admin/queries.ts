@@ -7,6 +7,8 @@ import type {
   EventRow,
   TeamMember,
   ChangeOrderRow,
+  ChangeOrderDetail,
+  ChangeOrderListRow,
   WeeklyTrendPoint,
 } from "./types";
 
@@ -242,4 +244,119 @@ export async function getCompanyDetail(companyId: string) {
 export async function refreshMaterializedViews(): Promise<void> {
   const db = createAdminClient();
   await db.rpc("refresh_admin_views");
+}
+
+export async function getChangeOrderDetail(
+  coId: string
+): Promise<ChangeOrderDetail | null> {
+  const db = createAdminClient();
+
+  const { data: co, error } = await db
+    .from("change_orders")
+    .select(
+      "*, projects!inner(name, client_name, client_email, client_phone), companies!inner(name), creator:users!change_orders_created_by_fkey(full_name)"
+    )
+    .eq("id", coId)
+    .single();
+
+  if (error || !co) return null;
+
+  const [lineItemsRes, photosRes, eventsRes] = await Promise.all([
+    db
+      .from("co_line_items")
+      .select("id, description, quantity, unit, rate, amount, item_type, sort_order")
+      .eq("change_order_id", coId)
+      .order("sort_order")
+      .limit(200),
+    db
+      .from("co_photos")
+      .select("id, original_url, annotated_url, file_name, sort_order")
+      .eq("change_order_id", coId)
+      .order("sort_order")
+      .limit(50),
+    db
+      .from("approval_events")
+      .select("id, action, method, client_name_typed, ip_address, created_at")
+      .eq("change_order_id", coId)
+      .order("created_at", { ascending: false })
+      .limit(100),
+  ]);
+
+  const project = co.projects as { name: string; client_name: string | null; client_email: string | null; client_phone: string | null };
+  const company = co.companies as { name: string };
+  const creator = co.creator as { full_name: string } | null;
+
+  return {
+    id: co.id,
+    co_number: co.co_number,
+    title: co.title,
+    description: co.description,
+    pricing_type: co.pricing_type,
+    fixed_amount: co.fixed_amount,
+    total_amount: co.total_amount,
+    status: co.status,
+    approval_method: co.approval_method,
+    internal_notes: co.internal_notes,
+    start_date: co.start_date,
+    completion_date: co.completion_date,
+    sent_at: co.sent_at,
+    approved_at: co.approved_at,
+    declined_at: co.declined_at,
+    edit_count: co.edit_count ?? 0,
+    created_at: co.created_at,
+    company_id: co.company_id,
+    company_name: company.name,
+    project_name: project.name,
+    client_name: project.client_name,
+    client_email: project.client_email,
+    client_phone: project.client_phone,
+    created_by_name: creator?.full_name || null,
+    line_items: (lineItemsRes.data || []) as ChangeOrderDetail["line_items"],
+    photos: (photosRes.data || []) as ChangeOrderDetail["photos"],
+    approval_events: (eventsRes.data || []) as ChangeOrderDetail["approval_events"],
+  };
+}
+
+export async function getAllChangeOrders(
+  page = 1,
+  pageSize = 50,
+  search = ""
+): Promise<{ data: ChangeOrderListRow[]; total: number }> {
+  const db = createAdminClient();
+  const from = (page - 1) * pageSize;
+  const to = from + pageSize - 1;
+
+  let query = db
+    .from("change_orders")
+    .select(
+      "id, co_number, title, total_amount, status, approval_method, created_at, company_id, companies!inner(name), projects!inner(client_name)",
+      { count: "exact" }
+    )
+    .order("created_at", { ascending: false })
+    .range(from, to);
+
+  if (search) {
+    const s = `%${search}%`;
+    query = query.or(
+      `co_number.ilike.${s},title.ilike.${s}`
+    );
+  }
+
+  const { data, count, error } = await query;
+  if (error) return { data: [], total: 0 };
+
+  const rows = (data || []).map((row: Record<string, unknown>) => ({
+    id: row.id as string,
+    co_number: row.co_number as string,
+    title: row.title as string,
+    customer_name: (row.projects as { client_name: string | null })?.client_name,
+    total_amount: row.total_amount as number | null,
+    status: row.status as string,
+    sent_via: row.approval_method as string | null,
+    created_at: row.created_at as string,
+    company_id: row.company_id as string,
+    company_name: (row.companies as { name: string })?.name,
+  }));
+
+  return { data: rows, total: count || 0 };
 }
