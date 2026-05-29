@@ -5,6 +5,7 @@ import { getChangeOrderDetail } from "@/lib/admin/queries";
 import { formatCurrency, formatAbsoluteDate } from "@/lib/admin/helpers";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { AdminPdfButton } from "./admin-pdf-button";
 
 function statusColor(status: string): string {
   switch (status) {
@@ -70,9 +71,12 @@ export default async function AdminChangeOrderDetailPage({ params }: PageProps) 
             {co.created_by_name && <> &middot; Created by {co.created_by_name}</>}
           </p>
         </div>
-        <Badge variant="secondary" className={`text-sm ${statusColor(co.status)}`}>
-          {co.status}
-        </Badge>
+        <div className="flex items-center gap-2">
+          <AdminPdfButton coId={co.id} coNumber={co.co_number} />
+          <Badge variant="secondary" className={`text-sm ${statusColor(co.status)}`}>
+            {co.status}
+          </Badge>
+        </div>
       </div>
 
       {/* Details */}
