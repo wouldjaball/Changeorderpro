@@ -308,6 +308,9 @@ function CODocument({
   const co = changeOrder;
   const total = Number(co.total_amount || co.fixed_amount || 0);
   const sColor = statusColors[co.status] || statusColors.draft;
+  const brandColor = company.settings?.brand_color || null;
+  const accent = brandColor || "#1e40af";
+  const accentBorder = brandColor || "#2563eb";
   const approvalEvent = approvalEvents.find(
     (e) => e.action === "approved" || e.action === "declined"
   );
@@ -328,17 +331,26 @@ function CODocument({
       // Header
       React.createElement(
         View,
-        { style: styles.header },
+        { style: { ...styles.header, borderBottomColor: accentBorder } },
         React.createElement(
           View,
           { style: styles.companyInfo },
           company.logo_url
             ? React.createElement(Image, {
                 src: company.logo_url,
-                style: { width: 120, height: 40, objectFit: "contain" as const, marginBottom: 4 },
+                style: {
+                  width: 150,
+                  height: 50,
+                  objectFit: "contain" as const,
+                  objectPositionX: 0,
+                  marginBottom: 4,
+                },
               })
-            : null,
-          React.createElement(Text, { style: styles.companyName }, company.name),
+            : React.createElement(
+                Text,
+                { style: { ...styles.companyName, color: accent } },
+                company.name
+              ),
           companyAddress
             ? React.createElement(Text, { style: styles.companyDetail }, companyAddress)
             : null,
@@ -350,7 +362,11 @@ function CODocument({
           View,
           { style: styles.coNumberBlock },
           React.createElement(Text, { style: styles.coNumberLabel }, "Change Order"),
-          React.createElement(Text, { style: styles.coNumber }, co.co_number),
+          React.createElement(
+            Text,
+            { style: { ...styles.coNumber, color: accent } },
+            co.co_number
+          ),
           React.createElement(
             Text,
             {
@@ -512,9 +528,13 @@ function CODocument({
         // Total
         React.createElement(
           View,
-          { style: styles.totalRow },
+          { style: { ...styles.totalRow, borderTopColor: accent } },
           React.createElement(Text, { style: styles.totalLabel }, "Total:"),
-          React.createElement(Text, { style: styles.totalValue }, formatCurrency(total))
+          React.createElement(
+            Text,
+            { style: { ...styles.totalValue, color: accent } },
+            formatCurrency(total)
+          )
         )
       ),
 

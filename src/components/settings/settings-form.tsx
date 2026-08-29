@@ -111,6 +111,7 @@ export function SettingsForm({ company, userEmail, userName: initialUserName }: 
     settings.default_labor_rate ? String(settings.default_labor_rate) : ""
   );
   const [termsText, setTermsText] = useState(settings.terms_text || "");
+  const [brandColor, setBrandColor] = useState(settings.brand_color || "");
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
@@ -123,6 +124,7 @@ export function SettingsForm({ company, userEmail, userName: initialUserName }: 
       co_sequence_start: settings.co_sequence_start || 1,
       default_labor_rate: laborRate ? Number(laborRate) : null,
       terms_text: termsText || null,
+      brand_color: brandColor || null,
     };
 
     const { error } = await supabase
@@ -264,6 +266,32 @@ export function SettingsForm({ company, userEmail, userName: initialUserName }: 
                 </p>
               </div>
             )}
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="brandColor">Brand color</Label>
+            <div className="flex items-center gap-3">
+              <input
+                id="brandColor"
+                type="color"
+                value={brandColor || "#1e40af"}
+                onChange={(e) => setBrandColor(e.target.value)}
+                className="h-9 w-14 cursor-pointer rounded border border-input bg-transparent p-1"
+              />
+              {brandColor && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setBrandColor("")}
+                >
+                  <X className="mr-1 h-3 w-3" />
+                  Reset to default
+                </Button>
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Accent color used on your change order PDFs.
+            </p>
           </div>
           <Separator />
           <div className="space-y-2">

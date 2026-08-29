@@ -20,6 +20,7 @@ export interface CompanySettings {
   co_sequence_start: number;
   default_labor_rate: number | null;
   terms_text: string | null;
+  brand_color?: string | null;
 }
 
 export interface Company {
