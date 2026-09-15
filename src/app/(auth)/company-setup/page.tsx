@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { formatPhoneInput } from "@/lib/utils";
@@ -14,55 +14,132 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { toast } from "sonner";
-import { Loader2, Building2, MapPin, Rocket } from "lucide-react";
+import { Loader2, Upload, X, PartyPopper } from "lucide-react";
+import confetti from "canvas-confetti";
+import { SampleChangeOrder } from "@/components/onboarding/sample-change-order";
+import type { CompanySettings } from "@/types";
 
-const TRADE_TYPES = [
-  "General Contractor",
-  "Electrical",
-  "Plumbing",
-  "HVAC",
-  "Roofing",
-  "Painting",
-  "Landscaping",
-  "Flooring",
-  "Remodeling",
-  "Other",
-];
+type StepKey = "name" | "website" | "address" | "rate" | "phone" | "review";
 
-const STEPS = [
-  { title: "Company Info", icon: Building2 },
-  { title: "Address", icon: MapPin },
-  { title: "Launch", icon: Rocket },
+const STEP_ORDER: StepKey[] = [
+  "name",
+  "website",
+  "address",
+  "rate",
+  "phone",
+  "review",
 ];
 
 export default function CompanySetupPage() {
   const router = useRouter();
   const supabase = createClient();
-  const [step, setStep] = useState(0);
+  const [stepIndex, setStepIndex] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [launched, setLaunched] = useState(false);
 
-  // Form state
+  // A stable id generated up front so a logo can be uploaded to storage
+  // before the company row exists.
+  const [companyId] = useState(() => crypto.randomUUID());
+
   const [companyName, setCompanyName] = useState("");
-  const [tradeType, setTradeType] = useState("");
-  const [phone, setPhone] = useState("");
+  const [website, setWebsite] = useState("");
+  const [logoUrl, setLogoUrl] = useState("");
+  const [logoUploading, setLogoUploading] = useState(false);
+  const [showLogoUpload, setShowLogoUpload] = useState(false);
   const [addressStreet, setAddressStreet] = useState("");
   const [addressCity, setAddressCity] = useState("");
   const [addressState, setAddressState] = useState("");
   const [addressZip, setAddressZip] = useState("");
+  const [hourlyRate, setHourlyRate] = useState("");
+  const [phone, setPhone] = useState("");
+
+  const step = STEP_ORDER[stepIndex];
+
+  useEffect(() => {
+    if (!launched) return;
+    confetti({ particleCount: 120, spread: 90, origin: { y: 0.6 } });
+    const t1 = setTimeout(
+      () => confetti({ particleCount: 60, spread: 70, origin: { x: 0.2, y: 0.4 } }),
+      250
+    );
+    const t2 = setTimeout(
+      () => confetti({ particleCount: 60, spread: 70, origin: { x: 0.8, y: 0.4 } }),
+      400
+    );
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+    };
+  }, [launched]);
 
   function generateSlug(name: string): string {
     return name
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/^-|-$/g, "");
+  }
+
+  function normalizeWebsite(url: string): string {
+    const trimmed = url.trim();
+    if (!trimmed) return "";
+    return /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+  }
+
+  async function handleLogoUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setLogoUploading(true);
+    const ext = file.name.split(".").pop()?.toLowerCase() || "png";
+    const path = `${companyId}/logo.${ext}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from("company-logos")
+      .upload(path, file, { upsert: true });
+
+    if (uploadError) {
+      toast.error("Failed to upload logo: " + uploadError.message);
+      setLogoUploading(false);
+      return;
+    }
+
+    const {
+      data: { publicUrl },
+    } = supabase.storage.from("company-logos").getPublicUrl(path);
+
+    setLogoUrl(publicUrl);
+    setLogoUploading(false);
+  }
+
+  function canContinue(): boolean {
+    switch (step) {
+      case "name":
+        return companyName.trim().length > 0;
+      case "website":
+        return true;
+      case "address":
+        return (
+          addressStreet.trim().length > 0 &&
+          addressCity.trim().length > 0 &&
+          addressState.trim().length > 0 &&
+          addressZip.trim().length > 0
+        );
+      case "rate":
+        return Number(hourlyRate) > 0;
+      case "phone":
+        return phone.replace(/\D/g, "").length === 10;
+      default:
+        return true;
+    }
+  }
+
+  function goNext() {
+    setStepIndex((i) => Math.min(i + 1, STEP_ORDER.length - 1));
+  }
+
+  function goBack() {
+    setStepIndex((i) => Math.max(i - 1, 0));
   }
 
   async function handleCreate() {
@@ -77,22 +154,30 @@ export default function CompanySetupPage() {
       return;
     }
 
-    // Create the company (generate ID client-side to avoid SELECT RLS issue)
-    const companyId = crypto.randomUUID();
     const slug = generateSlug(companyName) + "-" + Date.now().toString(36);
-    const { error: companyError } = await supabase
-      .from("companies")
-      .insert({
-        id: companyId,
-        name: companyName,
-        slug,
-        trade_type: tradeType || null,
-        phone: phone || null,
-        address_street: addressStreet || null,
-        address_city: addressCity || null,
-        address_state: addressState || null,
-        address_zip: addressZip || null,
-      });
+    const settings: CompanySettings = {
+      default_approval_method: "link",
+      reminder_hours: 24,
+      co_prefix: "CO",
+      co_sequence_start: 1,
+      default_labor_rate: Number(hourlyRate),
+      terms_text: null,
+      brand_color: null,
+    };
+
+    const { error: companyError } = await supabase.from("companies").insert({
+      id: companyId,
+      name: companyName,
+      slug,
+      phone: phone || null,
+      website: normalizeWebsite(website) || null,
+      logo_url: logoUrl || null,
+      address_street: addressStreet || null,
+      address_city: addressCity || null,
+      address_state: addressState || null,
+      address_zip: addressZip || null,
+      settings,
+    });
 
     if (companyError) {
       toast.error("Failed to create company: " + companyError.message);
@@ -100,7 +185,6 @@ export default function CompanySetupPage() {
       return;
     }
 
-    // Link user to company as admin
     const { error: userError } = await supabase
       .from("users")
       .update({ company_id: companyId, role: "admin" })
@@ -112,108 +196,213 @@ export default function CompanySetupPage() {
       return;
     }
 
-    toast.success("Company created! Welcome to ChangeOrder Pro.");
-    router.push("/dashboard");
-    router.refresh();
+    setLoading(false);
+    setLaunched(true);
+  }
+
+  if (launched) {
+    return (
+      <Card className="w-full">
+        <CardHeader className="text-center">
+          <PartyPopper className="h-10 w-10 mx-auto text-primary mb-1" />
+          <CardTitle className="text-xl">You&apos;re all set up!</CardTitle>
+          <CardDescription>
+            Here&apos;s an example change order from {companyName}, so you know
+            what your clients will see.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <SampleChangeOrder
+            companyName={companyName}
+            logoUrl={logoUrl}
+            addressStreet={addressStreet}
+            addressCity={addressCity}
+            addressState={addressState}
+            addressZip={addressZip}
+            phone={phone}
+            hourlyRate={hourlyRate}
+          />
+          <Button
+            className="w-full h-12"
+            onClick={() => {
+              router.push("/dashboard");
+              router.refresh();
+            }}
+          >
+            Go to my dashboard
+          </Button>
+        </CardContent>
+      </Card>
+    );
   }
 
   return (
     <Card className="w-full">
       <CardHeader>
-        <div className="flex items-center gap-2 mb-2">
-          {STEPS.map((s, i) => {
-            const Icon = s.icon;
-            return (
-              <div key={i} className="flex items-center gap-1">
-                <div
-                  className={`flex items-center justify-center h-8 w-8 rounded-full text-xs font-medium ${
-                    i <= step
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-muted text-muted-foreground"
-                  }`}
-                >
-                  <Icon className="h-4 w-4" />
-                </div>
-                {i < STEPS.length - 1 && (
-                  <div
-                    className={`h-0.5 w-8 ${
-                      i < step ? "bg-primary" : "bg-muted"
-                    }`}
-                  />
-                )}
-              </div>
-            );
-          })}
+        <div className="mb-2 h-1.5 w-full rounded-full bg-muted overflow-hidden">
+          <div
+            className="h-full rounded-full bg-primary transition-all"
+            style={{
+              width: `${((stepIndex + 1) / STEP_ORDER.length) * 100}%`,
+            }}
+          />
         </div>
-        <CardTitle>{STEPS[step].title}</CardTitle>
-        <CardDescription>
-          {step === 0 && "Tell us about your company"}
-          {step === 1 && "Where is your company located? (Optional)"}
-          {step === 2 && "Review and launch your account"}
-        </CardDescription>
+        {step === "name" && (
+          <>
+            <p className="text-sm font-medium text-primary mb-1">
+              Start your free trial
+            </p>
+            <CardTitle>What&apos;s your company called?</CardTitle>
+            <CardDescription>
+              This is what will appear on your change orders.
+            </CardDescription>
+          </>
+        )}
+        {step === "website" && (
+          <>
+            <CardTitle>Do you have a website?</CardTitle>
+            <CardDescription>
+              Strongly suggested if you have one — it helps your change orders
+              look professional. If not, no problem, just skip this.
+            </CardDescription>
+          </>
+        )}
+        {step === "address" && (
+          <>
+            <CardTitle>Where&apos;s your business located?</CardTitle>
+            <CardDescription>
+              Necessary for a professional looking change order.
+            </CardDescription>
+          </>
+        )}
+        {step === "rate" && (
+          <>
+            <CardTitle>What&apos;s your hourly rate?</CardTitle>
+            <CardDescription>
+              This can be changed any time. If you send an hourly proposal,
+              this is the rate we&apos;ll use.
+            </CardDescription>
+          </>
+        )}
+        {step === "phone" && (
+          <>
+            <CardTitle>Best number to reach you?</CardTitle>
+            <CardDescription>
+              This is where someone can contact you regarding this change
+              order.
+            </CardDescription>
+          </>
+        )}
+        {step === "review" && (
+          <>
+            <CardTitle>You&apos;re all set. Take a look.</CardTitle>
+            <CardDescription>
+              Here&apos;s what your change orders will look like. You can
+              change any of this later in Settings.
+            </CardDescription>
+          </>
+        )}
       </CardHeader>
-      <CardContent>
-        {step === 0 && (
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="companyName">Company name *</Label>
-              <Input
-                id="companyName"
-                placeholder="Smith Construction LLC"
-                value={companyName}
-                onChange={(e) => setCompanyName(e.target.value)}
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="tradeType">Trade / Industry</Label>
-              <Select value={tradeType} onValueChange={(v) => setTradeType(v ?? "")}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select your trade" />
-                </SelectTrigger>
-                <SelectContent>
-                  {TRADE_TYPES.map((trade) => (
-                    <SelectItem key={trade} value={trade}>
-                      {trade}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="phone">Phone number</Label>
-              <Input
-                id="phone"
-                type="tel"
-                placeholder="(555) 123-4567"
-                value={phone}
-                onChange={(e) => setPhone(formatPhoneInput(e.target.value))}
-              />
-            </div>
-            <Button
-              className="w-full"
-              onClick={() => setStep(1)}
-              disabled={!companyName}
-            >
-              Continue
-            </Button>
+      <CardContent className="space-y-4">
+        {step === "name" && (
+          <div className="space-y-2">
+            <Label htmlFor="companyName">Company name *</Label>
+            <Input
+              id="companyName"
+              placeholder="Smith Construction LLC"
+              value={companyName}
+              onChange={(e) => setCompanyName(e.target.value)}
+              autoFocus
+              required
+            />
           </div>
         )}
 
-        {step === 1 && (
+        {step === "website" && (
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="street">Street address</Label>
+              <Label htmlFor="website">Website</Label>
+              <Input
+                id="website"
+                type="text"
+                placeholder="yourcompany.com"
+                value={website}
+                onChange={(e) => setWebsite(e.target.value)}
+                autoFocus
+              />
+            </div>
+            {showLogoUpload ? (
+              <div className="space-y-2">
+                <Label>Company logo</Label>
+                {logoUrl ? (
+                  <div className="flex items-center gap-3">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={logoUrl}
+                      alt="Company logo"
+                      className="h-12 max-w-[200px] object-contain rounded border"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setLogoUrl("")}
+                    >
+                      <X className="mr-1 h-3 w-3" />
+                      Remove
+                    </Button>
+                  </div>
+                ) : (
+                  <div>
+                    <label
+                      htmlFor="logoUpload"
+                      className="inline-flex items-center gap-2 cursor-pointer rounded-md border border-dashed border-input px-4 py-2 text-sm text-muted-foreground hover:bg-accent transition-colors"
+                    >
+                      {logoUploading ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Upload className="h-4 w-4" />
+                      )}
+                      {logoUploading ? "Uploading..." : "Upload logo"}
+                    </label>
+                    <input
+                      id="logoUpload"
+                      type="file"
+                      accept="image/png,image/jpeg,image/svg+xml"
+                      className="hidden"
+                      onChange={handleLogoUpload}
+                      disabled={logoUploading}
+                    />
+                  </div>
+                )}
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setShowLogoUpload(true)}
+                className="text-sm text-primary hover:underline"
+              >
+                Have a logo? Add it now (optional)
+              </button>
+            )}
+          </div>
+        )}
+
+        {step === "address" && (
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="street">Street address *</Label>
               <Input
                 id="street"
                 placeholder="123 Main St"
                 value={addressStreet}
                 onChange={(e) => setAddressStreet(e.target.value)}
+                autoFocus
               />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
-                <Label htmlFor="city">City</Label>
+                <Label htmlFor="city">City *</Label>
                 <Input
                   id="city"
                   placeholder="Austin"
@@ -222,7 +411,7 @@ export default function CompanySetupPage() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="state">State</Label>
+                <Label htmlFor="state">State *</Label>
                 <Input
                   id="state"
                   placeholder="TX"
@@ -233,7 +422,7 @@ export default function CompanySetupPage() {
               </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="zip">ZIP code</Label>
+              <Label htmlFor="zip">ZIP code *</Label>
               <Input
                 id="zip"
                 placeholder="78701"
@@ -241,75 +430,88 @@ export default function CompanySetupPage() {
                 onChange={(e) => setAddressZip(e.target.value)}
               />
             </div>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                className="flex-1"
-                onClick={() => setStep(0)}
-              >
-                Back
-              </Button>
-              <Button className="flex-1" onClick={() => setStep(2)}>
-                Continue
-              </Button>
-            </div>
           </div>
         )}
 
-        {step === 2 && (
-          <div className="space-y-4">
-            <div className="rounded-lg border p-4 space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Company</span>
-                <span className="font-medium">{companyName}</span>
-              </div>
-              {tradeType && (
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Trade</span>
-                  <span>{tradeType}</span>
-                </div>
-              )}
-              {phone && (
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Phone</span>
-                  <span>{phone}</span>
-                </div>
-              )}
-              {addressCity && (
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Location</span>
-                  <span>
-                    {addressCity}
-                    {addressState ? `, ${addressState}` : ""}
-                  </span>
-                </div>
-              )}
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Plan</span>
-                <span className="text-green-600 font-medium">
-                  14-day free trial
-                </span>
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                className="flex-1"
-                onClick={() => setStep(1)}
-              >
-                Back
-              </Button>
-              <Button
-                className="flex-1"
-                onClick={handleCreate}
-                disabled={loading}
-              >
-                {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Launch my account
-              </Button>
-            </div>
+        {step === "rate" && (
+          <div className="space-y-2">
+            <Label htmlFor="rate">Hourly rate ($/hr) *</Label>
+            <Input
+              id="rate"
+              type="number"
+              step="0.01"
+              min="0"
+              placeholder="85.00"
+              value={hourlyRate}
+              onChange={(e) => setHourlyRate(e.target.value)}
+              autoFocus
+            />
           </div>
         )}
+
+        {step === "phone" && (
+          <div className="space-y-2">
+            <Label htmlFor="phone">Phone number *</Label>
+            <Input
+              id="phone"
+              type="tel"
+              placeholder="(555) 123-4567"
+              value={phone}
+              onChange={(e) => setPhone(formatPhoneInput(e.target.value))}
+              autoFocus
+            />
+          </div>
+        )}
+
+        {step === "review" && (
+          <div className="space-y-4">
+            <SampleChangeOrder
+              companyName={companyName}
+              logoUrl={logoUrl}
+              addressStreet={addressStreet}
+              addressCity={addressCity}
+              addressState={addressState}
+              addressZip={addressZip}
+              phone={phone}
+              hourlyRate={hourlyRate}
+            />
+            <p className="text-sm text-green-600 font-medium text-center">
+              14-day free trial — no credit card required
+            </p>
+          </div>
+        )}
+
+        <div className="flex gap-2 pt-2">
+          {stepIndex > 0 && (
+            <Button
+              type="button"
+              variant="outline"
+              className="flex-1"
+              onClick={goBack}
+              disabled={loading}
+            >
+              Back
+            </Button>
+          )}
+          {step === "review" ? (
+            <Button
+              className="flex-1"
+              onClick={handleCreate}
+              disabled={loading}
+            >
+              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Start my free trial
+            </Button>
+          ) : (
+            <Button
+              className="flex-1"
+              onClick={goNext}
+              disabled={!canContinue()}
+            >
+              {step === "website" && !website ? "Skip" : "Continue"}
+            </Button>
+          )}
+        </div>
       </CardContent>
     </Card>
   );

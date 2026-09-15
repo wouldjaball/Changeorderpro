@@ -97,6 +97,7 @@ export function SettingsForm({ company, userEmail, userName: initialUserName }: 
   // Company info
   const [name, setName] = useState(company.name);
   const [phone, setPhone] = useState(formatPhoneInput(company.phone || ""));
+  const [website, setWebsite] = useState(company.website || "");
   const [tradeType, setTradeType] = useState(company.trade_type || "");
   const [addressStreet, setAddressStreet] = useState(company.address_street || "");
   const [addressCity, setAddressCity] = useState(company.address_city || "");
@@ -133,6 +134,7 @@ export function SettingsForm({ company, userEmail, userName: initialUserName }: 
       .update({
         name,
         phone: phone || null,
+        website: website || null,
         trade_type: tradeType || null,
         address_street: addressStreet || null,
         address_city: addressCity || null,
@@ -323,6 +325,16 @@ export function SettingsForm({ company, userEmail, userName: initialUserName }: 
                 placeholder="General Contractor"
               />
             </div>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="website">Website</Label>
+            <Input
+              id="website"
+              type="url"
+              value={website}
+              onChange={(e) => setWebsite(e.target.value)}
+              placeholder="https://yourcompany.com"
+            />
           </div>
           <Separator />
           <div className="space-y-2">
