@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Send, Loader2, MessageSquare, Mail, Link2, Zap } from "lucide-react";
+import { Loader2, MessageSquare, Mail, Link2, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ApprovalMethod } from "@/types";
 
@@ -72,8 +72,9 @@ export function SendDialog({
 }: SendDialogProps) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [method, setMethod] = useState<ApprovalMethod>("both");
-  const [loading, setLoading] = useState(false);
+  const [sendingMethod, setSendingMethod] = useState<ApprovalMethod | null>(
+    null
+  );
   const [pendingSms, setPendingSms] = useState<{
     href: string;
     emailAlsoSent: boolean;
@@ -87,8 +88,8 @@ export function SendDialog({
   }
   const canEmail = allEmails.length > 0;
 
-  async function handleSend() {
-    // Validate we can send via selected method
+  async function handleSend(method: ApprovalMethod) {
+    // Validate we can send via this method
     if ((method === "sms" || method === "both") && !canSMS) {
       toast.error("Client phone number is required for SMS");
       return;
@@ -98,7 +99,7 @@ export function SendDialog({
       return;
     }
 
-    setLoading(true);
+    setSendingMethod(method);
 
     try {
       const res = await fetch("/api/co/send", {
@@ -114,7 +115,7 @@ export function SendDialog({
 
       if (!res.ok) {
         toast.error(data.error || "Failed to send change order");
-        setLoading(false);
+        setSendingMethod(null);
         return;
       }
 
@@ -150,7 +151,7 @@ export function SendDialog({
     } catch {
       toast.error("Network error — please try again");
     } finally {
-      setLoading(false);
+      setSendingMethod(null);
     }
   }
 
@@ -158,6 +159,7 @@ export function SendDialog({
     setOpen(next);
     if (!next) {
       setPendingSms(null);
+      setSendingMethod(null);
     }
   }
 
@@ -246,7 +248,7 @@ export function SendDialog({
                 )}
               </div>
 
-              {/* Method selection */}
+              {/* Method selection — tapping one sends immediately */}
               <div className="space-y-2">
                 <Label>Delivery method</Label>
                 <div className="grid gap-2">
@@ -255,30 +257,29 @@ export function SendDialog({
                     const disabled =
                       (m.value === "sms" && !canSMS) ||
                       (m.value === "email" && !canEmail) ||
-                      (m.value === "both" && (!canSMS || !canEmail));
+                      (m.value === "both" && (!canSMS || !canEmail)) ||
+                      (sendingMethod !== null && sendingMethod !== m.value);
+                    const isSending = sendingMethod === m.value;
 
                     return (
                       <button
                         key={m.value}
                         type="button"
                         disabled={disabled}
-                        onClick={() => setMethod(m.value)}
+                        onClick={() => handleSend(m.value)}
                         className={cn(
                           "flex items-center gap-3 rounded-lg border p-3 text-left transition-colors",
-                          method === m.value
+                          isSending
                             ? "border-primary bg-primary/5"
                             : "hover:bg-accent",
                           disabled && "opacity-50 cursor-not-allowed"
                         )}
                       >
-                        <Icon
-                          className={cn(
-                            "h-5 w-5 shrink-0",
-                            method === m.value
-                              ? "text-primary"
-                              : "text-muted-foreground"
-                          )}
-                        />
+                        {isSending ? (
+                          <Loader2 className="h-5 w-5 shrink-0 animate-spin text-primary" />
+                        ) : (
+                          <Icon className="h-5 w-5 shrink-0 text-muted-foreground" />
+                        )}
                         <div>
                           <p className="text-base font-medium">{m.label}</p>
                           <p className="text-sm text-muted-foreground">
@@ -297,20 +298,9 @@ export function SendDialog({
                 variant="outline"
                 className="flex-1"
                 onClick={() => handleOpenChange(false)}
+                disabled={sendingMethod !== null}
               >
                 Cancel
-              </Button>
-              <Button
-                className="flex-1"
-                onClick={handleSend}
-                disabled={loading || (!canSMS && !canEmail && method !== "link")}
-              >
-                {loading ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <Send className="mr-2 h-4 w-4" />
-                )}
-                Send Now
               </Button>
             </div>
           </>
