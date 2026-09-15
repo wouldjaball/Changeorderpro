@@ -105,7 +105,6 @@ export default function PrivacyPolicyPage() {
             <p>We share data with the following categories of service providers, only as necessary to operate the Service:</p>
             <ul className="ml-4 list-disc space-y-1">
               <li><strong>Supabase</strong> — Database hosting, authentication, and file storage</li>
-              <li><strong>Twilio</strong> — SMS delivery for change order approvals and reminders</li>
               <li><strong>Resend</strong> — Transactional email delivery</li>
               <li><strong>Vercel</strong> — Application hosting and deployment</li>
               <li><strong>Anthropic</strong> — AI-powered text generation features (no personal data is sent; only change order descriptions and line item context)</li>
@@ -117,60 +116,20 @@ export default function PrivacyPolicyPage() {
           </section>
 
           <section>
-            <h2 className="text-xl font-semibold">5. SMS &amp; Messaging Consent</h2>
-
-            <h3 className="mt-4 text-base font-semibold">5.1 How We Collect Consent (Opt-In)</h3>
+            <h2 className="text-xl font-semibold">5. SMS &amp; Messaging</h2>
             <p>
-              Before any SMS messages are sent to a client, the {companyName} user (contractor)
-              must explicitly confirm that the client has consented to receive text messages. This
-              consent is collected through a required opt-in checkbox on our project creation and
-              project editing forms. The checkbox includes the following disclosure:
+              {companyName} does not operate an automated SMS platform and does not send text
+              messages to clients on a contractor&apos;s behalf. When a contractor chooses the
+              &quot;SMS&quot; delivery option for a change order, {companyName} opens the
+              contractor&apos;s own phone&apos;s messaging app with the change order link
+              pre-filled, and the contractor sends it themselves from their own phone number, at
+              their own discretion — the same as if they had typed and sent the message manually.
             </p>
-            <blockquote className="mt-2 border-l-4 border-primary/30 pl-4 text-sm italic">
-              &quot;The client has agreed to receive SMS messages from ChangeOrder Pro regarding
-              change order approvals for this project. By checking this box, you confirm the
-              client consented to receive transactional SMS messages including change order
-              approval requests and reminders. Msg frequency varies (1–4 per change order).
-              Msg &amp; data rates may apply. Reply STOP to opt out, HELP for help.&quot;
-            </blockquote>
             <p className="mt-2">
-              SMS messages cannot be sent through {companyName} until this opt-in checkbox is
-              checked. We record the date and time of each consent confirmation.
-            </p>
-
-            <h3 className="mt-4 text-base font-semibold">5.2 Types of SMS Messages</h3>
-            <p>
-              When consent is confirmed and a {companyName} user sends a change order for approval,
-              the client may receive the following transactional SMS messages:
-            </p>
-            <ul className="ml-4 list-disc space-y-1">
-              <li>An initial approval request with change order details and a link to review</li>
-              <li>Up to two follow-up reminders if the change order remains pending</li>
-              <li>A confirmation or acknowledgment after the client approves or declines</li>
-            </ul>
-
-            <h3 className="mt-4 text-base font-semibold">5.3 Message Frequency &amp; Rates</h3>
-            <p>
-              Message frequency varies. Typically 1–4 messages per change order. Message and data
-              rates may apply. {companyName} does not charge recipients for SMS messages, but
-              carrier fees may apply.
-            </p>
-
-            <h3 className="mt-4 text-base font-semibold">5.4 Opt-Out &amp; Help</h3>
-            <p>
-              Recipients may opt out at any time by replying <strong>STOP</strong> to any message.
-              Reply <strong>HELP</strong> for assistance, or contact us at{" "}
-              <a href={`mailto:${contactEmail}`} className="text-primary underline">
-                {contactEmail}
-              </a>.
-            </p>
-
-            <h3 className="mt-4 text-base font-semibold">5.5 No Marketing or Third-Party Sharing</h3>
-            <p>
               We do not use phone numbers collected through the Service for marketing purposes.
-              Phone numbers are used solely for change order approval workflows initiated by the{" "}
-              {companyName} user who entered them. We do not share, sell, or rent phone numbers
-              or SMS consent data with third parties for their marketing purposes.
+              Phone numbers are used solely to let a {companyName} user send a change order
+              approval link to their own client. We do not share, sell, or rent phone numbers with
+              third parties for their marketing purposes.
             </p>
           </section>
 

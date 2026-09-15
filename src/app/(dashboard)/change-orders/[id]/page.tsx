@@ -360,7 +360,6 @@ export default async function ChangeOrderDetailPage({
             clientEmail={project?.client_email || undefined}
             clientEmails={(project?.client_emails as string[]) || []}
             clientPhone={project?.client_phone || undefined}
-            smsConsent={project?.sms_consent || false}
           >
             <Button className="flex-1 h-12">
               <Send className="mr-2 h-4 w-4" />
@@ -386,7 +385,6 @@ export default async function ChangeOrderDetailPage({
               clientEmail={project?.client_email || undefined}
               clientEmails={(project?.client_emails as string[]) || []}
               clientPhone={project?.client_phone || undefined}
-              smsConsent={project?.sms_consent || false}
             >
               <Button variant="outline" className="flex-1 h-12">
                 <Send className="mr-2 h-4 w-4" />

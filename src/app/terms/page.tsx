@@ -108,9 +108,10 @@ export default function TermsPage() {
               </li>
             </ul>
             <p className="mt-2">
-              SMS messages are sent via Twilio. Message and data rates may apply to recipients.
-              Recipients may opt out by replying STOP to any message. Message frequency varies;
-              typically 1–4 messages per change order.
+              The Service does not send SMS messages on your behalf. When you choose the SMS
+              delivery option, the Service opens your own phone&apos;s messaging app with the
+              change order link pre-filled, and you send it yourself from your own phone number.
+              You are solely responsible for the content and delivery of any SMS message you send.
             </p>
           </section>
 

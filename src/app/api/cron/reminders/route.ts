@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { sendSMS, smsReminder } from "@/lib/twilio";
 import { sendEmail } from "@/lib/resend";
 
 const CRON_SECRET = process.env.CRON_SECRET;
@@ -140,29 +139,9 @@ export async function GET(request: NextRequest) {
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
     const approvalLink = `${appUrl}/approve/${co.approval_token}`;
 
-    // Send reminder via SMS
-    if (project.client_phone && (co.approval_method === "sms" || co.approval_method === "both")) {
-      try {
-        const body = smsReminder({
-          coNumber: co.co_number,
-          companyName: company?.name || "Your contractor",
-          approvalLink,
-        });
-        const smsResult = await sendSMS({ to: project.client_phone, body });
-
-        await supabase.from("notifications_log").insert({
-          change_order_id: co.id,
-          company_id: co.company_id,
-          channel: "sms",
-          recipient: project.client_phone,
-          template_type: "reminder",
-          external_id: smsResult.sid,
-          status: "sent",
-        });
-      } catch {
-        results.errors.push(`SMS reminder for ${co.co_number} failed`);
-      }
-    }
+    // Note: SMS reminders can't be automated — SMS is sent from the contractor's
+    // own phone, not this server, so there's no way to send a reminder text
+    // without their involvement. Reminders are email-only.
 
     // Send reminder via email — to all client emails
     const reminderEmails: string[] = [];

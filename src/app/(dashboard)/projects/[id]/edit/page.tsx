@@ -33,7 +33,6 @@ export default function EditProjectPage() {
   const [clientPhone, setClientPhone] = useState("");
   const [clientPhoneSecondary, setClientPhoneSecondary] = useState("");
   const [clientEmails, setClientEmails] = useState<string[]>([]);
-  const [smsConsent, setSmsConsent] = useState(false);
 
   useEffect(() => {
     async function loadProject() {
@@ -57,7 +56,6 @@ export default function EditProjectPage() {
       setClientPhone(project.client_phone || "");
       setClientPhoneSecondary(project.client_phone_secondary || "");
       setClientEmails(project.client_emails || []);
-      setSmsConsent(project.sms_consent || false);
       setFetching(false);
     }
     loadProject();
@@ -78,8 +76,6 @@ export default function EditProjectPage() {
         client_emails: clientEmails.filter((e) => e.trim()),
         client_phone: clientPhone || null,
         client_phone_secondary: clientPhoneSecondary || null,
-        sms_consent: smsConsent,
-        sms_consent_at: smsConsent ? new Date().toISOString() : null,
       })
       .eq("id", id);
 
@@ -216,38 +212,6 @@ export default function EditProjectPage() {
                     onChange={(e) => setClientPhoneSecondary(e.target.value)}
                   />
                 </div>
-
-                {/* SMS Opt-In Consent */}
-                {clientPhone.trim() && (
-                  <div className="rounded-lg border bg-muted/30 p-3 space-y-2">
-                    <label className="flex items-start gap-2 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={smsConsent}
-                        onChange={(e) => setSmsConsent(e.target.checked)}
-                        className="mt-1 h-4 w-4 rounded border-gray-300"
-                      />
-                      <span className="text-sm leading-snug">
-                        The client has agreed to receive SMS messages from ChangeOrder Pro
-                        regarding change order approvals for this project.
-                      </span>
-                    </label>
-                    <p className="text-xs text-muted-foreground leading-relaxed pl-6">
-                      By checking this box, you confirm the client consented to receive
-                      transactional SMS messages including change order approval requests
-                      and reminders. Msg frequency varies (1–4 per change order). Msg &amp; data
-                      rates may apply. Reply STOP to opt out, HELP for help.{" "}
-                      <a href="/privacy" className="underline" target="_blank" rel="noopener noreferrer">
-                        Privacy Policy
-                      </a>{" "}
-                      &amp;{" "}
-                      <a href="/terms" className="underline" target="_blank" rel="noopener noreferrer">
-                        Terms
-                      </a>
-                      .
-                    </p>
-                  </div>
-                )}
               </div>
             </div>
 
