@@ -39,7 +39,7 @@ export default function SignupPage() {
 
     setLoading(true);
 
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -61,6 +61,14 @@ export default function SignupPage() {
         body: JSON.stringify({ name: fullName, email, phone: phone || null }),
       });
     } catch {}
+
+    // If email confirmation isn't required, signUp already returns an
+    // active session — skip the "check your email" screen entirely.
+    if (data.session) {
+      router.push("/company-setup");
+      router.refresh();
+      return;
+    }
 
     setSuccess(true);
     setLoading(false);

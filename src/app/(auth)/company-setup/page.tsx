@@ -15,21 +15,14 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Loader2, Upload, X, PartyPopper } from "lucide-react";
+import { Loader2, PartyPopper } from "lucide-react";
 import confetti from "canvas-confetti";
 import { SampleChangeOrder } from "@/components/onboarding/sample-change-order";
 import type { CompanySettings } from "@/types";
 
-type StepKey = "name" | "website" | "address" | "rate" | "phone" | "review";
+type StepKey = "name" | "website" | "address" | "rate" | "phone";
 
-const STEP_ORDER: StepKey[] = [
-  "name",
-  "website",
-  "address",
-  "rate",
-  "phone",
-  "review",
-];
+const STEP_ORDER: StepKey[] = ["name", "website", "address", "rate", "phone"];
 
 export default function CompanySetupPage() {
   const router = useRouter();
@@ -45,8 +38,7 @@ export default function CompanySetupPage() {
   const [companyName, setCompanyName] = useState("");
   const [website, setWebsite] = useState("");
   const [logoUrl, setLogoUrl] = useState("");
-  const [logoUploading, setLogoUploading] = useState(false);
-  const [showLogoUpload, setShowLogoUpload] = useState(false);
+  const [scrapingLogo, setScrapingLogo] = useState(false);
   const [addressStreet, setAddressStreet] = useState("");
   const [addressCity, setAddressCity] = useState("");
   const [addressState, setAddressState] = useState("");
@@ -86,30 +78,29 @@ export default function CompanySetupPage() {
     return /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
   }
 
-  async function handleLogoUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setLogoUploading(true);
-    const ext = file.name.split(".").pop()?.toLowerCase() || "png";
-    const path = `${companyId}/logo.${ext}`;
-
-    const { error: uploadError } = await supabase.storage
-      .from("company-logos")
-      .upload(path, file, { upsert: true });
-
-    if (uploadError) {
-      toast.error("Failed to upload logo: " + uploadError.message);
-      setLogoUploading(false);
-      return;
+  async function tryFindLogo() {
+    setScrapingLogo(true);
+    try {
+      const res = await fetch("/api/onboarding/scrape-logo", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ website, companyId }),
+      });
+      const data = await res.json().catch(() => ({ logoUrl: null }));
+      if (data.logoUrl) {
+        setLogoUrl(data.logoUrl);
+      } else {
+        toast("We couldn't find a logo on your site automatically", {
+          description: "No problem — you can add one anytime in Settings.",
+        });
+      }
+    } catch {
+      toast("We couldn't find a logo on your site automatically", {
+        description: "No problem — you can add one anytime in Settings.",
+      });
+    } finally {
+      setScrapingLogo(false);
     }
-
-    const {
-      data: { publicUrl },
-    } = supabase.storage.from("company-logos").getPublicUrl(path);
-
-    setLogoUrl(publicUrl);
-    setLogoUploading(false);
   }
 
   function canContinue(): boolean {
@@ -134,7 +125,10 @@ export default function CompanySetupPage() {
     }
   }
 
-  function goNext() {
+  async function goNext() {
+    if (step === "website" && website.trim()) {
+      await tryFindLogo();
+    }
     setStepIndex((i) => Math.min(i + 1, STEP_ORDER.length - 1));
   }
 
@@ -252,7 +246,7 @@ export default function CompanySetupPage() {
             <p className="text-sm font-medium text-primary mb-1">
               Start your free trial
             </p>
-            <CardTitle>What&apos;s your company called?</CardTitle>
+            <CardTitle>What&apos;s the name of your company?</CardTitle>
             <CardDescription>
               This is what will appear on your change orders.
             </CardDescription>
@@ -262,8 +256,8 @@ export default function CompanySetupPage() {
           <>
             <CardTitle>Do you have a website?</CardTitle>
             <CardDescription>
-              Strongly suggested if you have one — it helps your change orders
-              look professional. If not, no problem, just skip this.
+              Strongly suggested if you have one — we&apos;ll try to pull your
+              logo from it automatically. If not, no problem, just skip this.
             </CardDescription>
           </>
         )}
@@ -293,15 +287,6 @@ export default function CompanySetupPage() {
             </CardDescription>
           </>
         )}
-        {step === "review" && (
-          <>
-            <CardTitle>You&apos;re all set. Take a look.</CardTitle>
-            <CardDescription>
-              Here&apos;s what your change orders will look like. You can
-              change any of this later in Settings.
-            </CardDescription>
-          </>
-        )}
       </CardHeader>
       <CardContent className="space-y-4">
         {step === "name" && (
@@ -319,72 +304,16 @@ export default function CompanySetupPage() {
         )}
 
         {step === "website" && (
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="website">Website</Label>
-              <Input
-                id="website"
-                type="text"
-                placeholder="yourcompany.com"
-                value={website}
-                onChange={(e) => setWebsite(e.target.value)}
-                autoFocus
-              />
-            </div>
-            {showLogoUpload ? (
-              <div className="space-y-2">
-                <Label>Company logo</Label>
-                {logoUrl ? (
-                  <div className="flex items-center gap-3">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={logoUrl}
-                      alt="Company logo"
-                      className="h-12 max-w-[200px] object-contain rounded border"
-                    />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setLogoUrl("")}
-                    >
-                      <X className="mr-1 h-3 w-3" />
-                      Remove
-                    </Button>
-                  </div>
-                ) : (
-                  <div>
-                    <label
-                      htmlFor="logoUpload"
-                      className="inline-flex items-center gap-2 cursor-pointer rounded-md border border-dashed border-input px-4 py-2 text-sm text-muted-foreground hover:bg-accent transition-colors"
-                    >
-                      {logoUploading ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <Upload className="h-4 w-4" />
-                      )}
-                      {logoUploading ? "Uploading..." : "Upload logo"}
-                    </label>
-                    <input
-                      id="logoUpload"
-                      type="file"
-                      accept="image/png,image/jpeg,image/svg+xml"
-                      className="hidden"
-                      onChange={handleLogoUpload}
-                      disabled={logoUploading}
-                    />
-                  </div>
-                )}
-              </div>
-            ) : (
-              <button
-                type="button"
-                onClick={() => setShowLogoUpload(true)}
-                className="text-sm text-primary hover:underline"
-              >
-                Have a logo? Add it now (optional)
-              </button>
-            )}
+          <div className="space-y-2">
+            <Label htmlFor="website">Website</Label>
+            <Input
+              id="website"
+              type="text"
+              placeholder="yourcompany.com"
+              value={website}
+              onChange={(e) => setWebsite(e.target.value)}
+              autoFocus
+            />
           </div>
         )}
 
@@ -463,24 +392,6 @@ export default function CompanySetupPage() {
           </div>
         )}
 
-        {step === "review" && (
-          <div className="space-y-4">
-            <SampleChangeOrder
-              companyName={companyName}
-              logoUrl={logoUrl}
-              addressStreet={addressStreet}
-              addressCity={addressCity}
-              addressState={addressState}
-              addressZip={addressZip}
-              phone={phone}
-              hourlyRate={hourlyRate}
-            />
-            <p className="text-sm text-green-600 font-medium text-center">
-              14-day free trial — no credit card required
-            </p>
-          </div>
-        )}
-
         <div className="flex gap-2 pt-2">
           {stepIndex > 0 && (
             <Button
@@ -488,16 +399,16 @@ export default function CompanySetupPage() {
               variant="outline"
               className="flex-1"
               onClick={goBack}
-              disabled={loading}
+              disabled={loading || scrapingLogo}
             >
               Back
             </Button>
           )}
-          {step === "review" ? (
+          {step === "phone" ? (
             <Button
               className="flex-1"
               onClick={handleCreate}
-              disabled={loading}
+              disabled={loading || !canContinue()}
             >
               {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Start my free trial
@@ -506,9 +417,14 @@ export default function CompanySetupPage() {
             <Button
               className="flex-1"
               onClick={goNext}
-              disabled={!canContinue()}
+              disabled={!canContinue() || scrapingLogo}
             >
-              {step === "website" && !website ? "Skip" : "Continue"}
+              {scrapingLogo && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {scrapingLogo
+                ? "Looking for your logo..."
+                : step === "website" && !website
+                  ? "Skip"
+                  : "Continue"}
             </Button>
           )}
         </div>
