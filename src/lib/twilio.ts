@@ -1,4 +1,5 @@
 import twilio from "twilio";
+import { formatPhone } from "@/lib/utils";
 
 const accountSid = process.env.TWILIO_ACCOUNT_SID;
 const authToken = process.env.TWILIO_AUTH_TOKEN;
@@ -70,7 +71,7 @@ export function smsApprovalConfirmation(params: {
   clientEmail: string;
   companyPhone: string;
 }): string {
-  return `Change Order #${params.coNumber} approved. Thank you! ${params.companyName} will send a confirmation to ${params.clientEmail}. Questions? Call ${params.companyPhone}.`;
+  return `Change Order #${params.coNumber} approved. Thank you! ${params.companyName} will send a confirmation to ${params.clientEmail}. Questions? Call ${formatPhone(params.companyPhone)}.`;
 }
 
 export function smsDeclineAcknowledgment(params: {
@@ -78,7 +79,7 @@ export function smsDeclineAcknowledgment(params: {
   companyName: string;
   companyPhone: string;
 }): string {
-  return `Change Order #${params.coNumber} declined. Your project manager at ${params.companyName} will follow up shortly. Questions? Call ${params.companyPhone}.`;
+  return `Change Order #${params.coNumber} declined. Your project manager at ${params.companyName} will follow up shortly. Questions? Call ${formatPhone(params.companyPhone)}.`;
 }
 
 /**

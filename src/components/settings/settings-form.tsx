@@ -18,6 +18,7 @@ import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { Loader2, Save, Upload, X } from "lucide-react";
 import type { Company, CompanySettings } from "@/types";
+import { formatPhoneInput } from "@/lib/utils";
 
 interface SettingsFormProps {
   company: Company;
@@ -95,7 +96,7 @@ export function SettingsForm({ company, userEmail, userName: initialUserName }: 
 
   // Company info
   const [name, setName] = useState(company.name);
-  const [phone, setPhone] = useState(company.phone || "");
+  const [phone, setPhone] = useState(formatPhoneInput(company.phone || ""));
   const [tradeType, setTradeType] = useState(company.trade_type || "");
   const [addressStreet, setAddressStreet] = useState(company.address_street || "");
   const [addressCity, setAddressCity] = useState(company.address_city || "");
@@ -310,7 +311,7 @@ export function SettingsForm({ company, userEmail, userName: initialUserName }: 
                 id="phone"
                 type="tel"
                 value={phone}
-                onChange={(e) => setPhone(e.target.value)}
+                onChange={(e) => setPhone(formatPhoneInput(e.target.value))}
               />
             </div>
             <div className="space-y-2">
