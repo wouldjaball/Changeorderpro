@@ -15,6 +15,8 @@ const STATUS_OPTIONS = [
   { value: "declined", label: "Declined" },
   { value: "void", label: "Void" },
   { value: "invoiced", label: "Invoiced" },
+  { value: "paid", label: "Paid" },
+  { value: "archived", label: "Archived" },
 ];
 
 interface COFiltersProps {

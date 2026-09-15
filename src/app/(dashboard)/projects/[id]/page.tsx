@@ -53,6 +53,9 @@ export default async function ProjectDetailPage({
     void: "bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-500",
     invoiced:
       "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300",
+    paid: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-300",
+    archived:
+      "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400",
   };
 
   return (

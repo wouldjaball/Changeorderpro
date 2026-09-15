@@ -9,6 +9,7 @@ import {
   Clock,
   CheckCircle,
   DollarSign,
+  Banknote,
   Plus,
 } from "lucide-react";
 import Link from "next/link";
@@ -77,6 +78,16 @@ export default async function DashboardPage({
       0
     ) || 0;
 
+  const { count: paidCount, data: paidCOs } = await supabase
+    .from("change_orders")
+    .select("total_amount", { count: "exact" })
+    .eq("company_id", companyId!)
+    .eq("status", "paid")
+    .limit(1000);
+
+  const totalPaidValue =
+    paidCOs?.reduce((sum, co) => sum + (Number(co.total_amount) || 0), 0) || 0;
+
   // Fetch projects for filter dropdown
   const { data: projects } = await supabase
     .from("projects")
@@ -120,6 +131,12 @@ export default async function DashboardPage({
       value: `$${totalApprovedValue.toLocaleString()}`,
       icon: DollarSign,
     },
+    {
+      label: "Total Paid",
+      value: `$${totalPaidValue.toLocaleString()}`,
+      sublabel: `${paidCount || 0} change order${paidCount === 1 ? "" : "s"}`,
+      icon: Banknote,
+    },
   ];
 
   const statusColors: Record<string, string> = {
@@ -131,6 +148,9 @@ export default async function DashboardPage({
     void: "bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-500",
     invoiced:
       "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300",
+    paid: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-300",
+    archived:
+      "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400",
   };
 
   return (
@@ -155,6 +175,11 @@ export default async function DashboardPage({
                   <span className="text-sm">{stat.label}</span>
                 </div>
                 <p className="text-2xl font-bold">{stat.value}</p>
+                {"sublabel" in stat && stat.sublabel && (
+                  <p className="text-sm text-muted-foreground mt-0.5">
+                    {stat.sublabel}
+                  </p>
+                )}
               </CardContent>
             </Card>
           );

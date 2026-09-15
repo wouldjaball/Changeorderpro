@@ -3,7 +3,15 @@
 // ==========================================
 
 export type UserRole = "admin" | "pm" | "contractor";
-export type COStatus = "draft" | "sent" | "approved" | "declined" | "void" | "invoiced";
+export type COStatus =
+  | "draft"
+  | "sent"
+  | "approved"
+  | "declined"
+  | "void"
+  | "invoiced"
+  | "paid"
+  | "archived";
 export type PricingType = "fixed" | "tm" | "hybrid";
 export type ApprovalMethod = "sms" | "email" | "link" | "both";
 export type ProjectStatus = "active" | "completed" | "archived";
@@ -91,6 +99,8 @@ export interface ChangeOrder {
   sent_at: string | null;
   approved_at: string | null;
   declined_at: string | null;
+  paid_at: string | null;
+  archived_at: string | null;
   edit_count: number;
   last_edited_at: string | null;
   last_edited_by: string | null;
