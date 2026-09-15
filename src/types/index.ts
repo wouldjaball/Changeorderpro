@@ -33,6 +33,7 @@ export interface Company {
   address_city: string | null;
   address_state: string | null;
   address_zip: string | null;
+  website: string | null;
   logo_url: string | null;
   plan_tier: PlanTier;
   settings: CompanySettings;
