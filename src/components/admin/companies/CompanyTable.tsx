@@ -9,6 +9,7 @@ import { StatusBadge } from "@/components/admin/shared/StatusBadge";
 import { PlanBadge } from "@/components/admin/shared/PlanBadge";
 import { ChannelBadge } from "@/components/admin/shared/ChannelBadge";
 import { EmptyState } from "@/components/admin/shared/EmptyState";
+import { DeleteCompanyDialog } from "@/components/admin/companies/DeleteCompanyDialog";
 import { formatRelativeTime, formatAbsoluteDate } from "@/lib/admin/helpers";
 import { Search, ChevronUp, ChevronDown, Building2 } from "lucide-react";
 import type { CompanyStats } from "@/lib/admin/types";
@@ -142,6 +143,9 @@ export function CompanyTable({
                       </span>
                     </th>
                   ))}
+                  <th className="text-right px-4 py-3 font-medium text-muted-foreground">
+                    Actions
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -181,6 +185,12 @@ export function CompanyTable({
                     </td>
                     <td className="px-4 py-3 text-muted-foreground">
                       {formatAbsoluteDate(row.signup_at)}
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <DeleteCompanyDialog
+                        companyId={row.company_id}
+                        companyName={row.company_name}
+                      />
                     </td>
                   </tr>
                 ))}

@@ -1,6 +1,6 @@
 export const dynamic = "force-dynamic";
 
-import { getCompanyList } from "@/lib/admin/queries";
+import { getCompanyList, refreshMaterializedViews } from "@/lib/admin/queries";
 import { CompanyTable } from "@/components/admin/companies/CompanyTable";
 import { CompanyFilters } from "@/components/admin/companies/CompanyFilters";
 import { CsvExportButton } from "@/components/admin/companies/CsvExportButton";
@@ -25,6 +25,8 @@ export default async function CompaniesPage({ searchParams }: PageProps) {
   const activity = str(params.activity);
   const signupFrom = str(params.signupFrom);
   const signupTo = str(params.signupTo);
+
+  await refreshMaterializedViews();
 
   const result = await getCompanyList({
     search,
