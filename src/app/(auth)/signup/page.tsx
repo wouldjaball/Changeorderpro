@@ -20,6 +20,10 @@ import { toast } from "sonner";
 import { Loader2, CheckCircle, PartyPopper } from "lucide-react";
 import confetti from "canvas-confetti";
 import { SampleChangeOrder } from "@/components/onboarding/sample-change-order";
+import {
+  saveOnboardingDraft,
+  clearOnboardingDraft,
+} from "@/lib/onboarding-draft";
 import type { CompanySettings } from "@/types";
 
 type StepKey = "name" | "website" | "address" | "rate" | "phone" | "account";
@@ -163,6 +167,11 @@ export default function SignupPage() {
 
     setLoading(true);
 
+    // Drop any leftover draft from a prior abandoned attempt in this
+    // browser so it can't bleed into this signup if confirmation is
+    // required below.
+    clearOnboardingDraft();
+
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -187,9 +196,22 @@ export default function SignupPage() {
     } catch {}
 
     // If email confirmation is required, there's no authenticated session
-    // yet to satisfy RLS on companies/users — finish setup after they
-    // confirm (company-setup re-asks these questions from scratch).
+    // yet to satisfy RLS on companies/users. Stash what they've already
+    // entered so company-setup can pick up right where this left off
+    // once they confirm, instead of re-asking everything.
     if (!data.session || !data.user) {
+      saveOnboardingDraft({
+        companyId,
+        companyName,
+        website,
+        logoUrl,
+        addressStreet,
+        addressCity,
+        addressState,
+        addressZip,
+        hourlyRate,
+        phone,
+      });
       setLoading(false);
       setAwaitingConfirmation(true);
       return;
@@ -249,8 +271,9 @@ export default function SignupPage() {
           <CardTitle>Check your email</CardTitle>
           <CardDescription>
             We sent a confirmation link to <strong>{email}</strong>. Click it
-            to activate your account and finish setting up{" "}
-            {companyName || "your company"}.
+            on this device to activate your account — we&apos;ve saved what
+            you entered for {companyName || "your company"}, so you won&apos;t
+            need to fill it in again.
           </CardDescription>
         </CardHeader>
         <CardFooter className="justify-center">

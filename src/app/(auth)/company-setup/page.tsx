@@ -18,6 +18,11 @@ import { toast } from "sonner";
 import { Loader2, PartyPopper } from "lucide-react";
 import confetti from "canvas-confetti";
 import { SampleChangeOrder } from "@/components/onboarding/sample-change-order";
+import {
+  loadOnboardingDraft,
+  clearOnboardingDraft,
+  isOnboardingDraftComplete,
+} from "@/lib/onboarding-draft";
 import type { CompanySettings } from "@/types";
 
 type StepKey = "name" | "website" | "address" | "rate" | "phone";
@@ -27,24 +32,31 @@ const STEP_ORDER: StepKey[] = ["name", "website", "address", "rate", "phone"];
 export default function CompanySetupPage() {
   const router = useRouter();
   const supabase = createClient();
+
+  // Picks up where /signup left off when email confirmation was required
+  // and the wizard's answers were stashed before the redirect.
+  const [draft] = useState(() => loadOnboardingDraft());
+  const draftComplete = draft ? isOnboardingDraftComplete(draft) : false;
+
   const [stepIndex, setStepIndex] = useState(0);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(() => draftComplete);
   const [launched, setLaunched] = useState(false);
 
   // A stable id generated up front so a logo can be uploaded to storage
-  // before the company row exists.
-  const [companyId] = useState(() => crypto.randomUUID());
+  // before the company row exists — reused from the draft so it matches
+  // whatever logo was already scraped/uploaded under it.
+  const [companyId] = useState(() => draft?.companyId ?? crypto.randomUUID());
 
-  const [companyName, setCompanyName] = useState("");
-  const [website, setWebsite] = useState("");
-  const [logoUrl, setLogoUrl] = useState("");
+  const [companyName, setCompanyName] = useState(draft?.companyName ?? "");
+  const [website, setWebsite] = useState(draft?.website ?? "");
+  const [logoUrl, setLogoUrl] = useState(draft?.logoUrl ?? "");
   const [scrapingLogo, setScrapingLogo] = useState(false);
-  const [addressStreet, setAddressStreet] = useState("");
-  const [addressCity, setAddressCity] = useState("");
-  const [addressState, setAddressState] = useState("");
-  const [addressZip, setAddressZip] = useState("");
-  const [hourlyRate, setHourlyRate] = useState("");
-  const [phone, setPhone] = useState("");
+  const [addressStreet, setAddressStreet] = useState(draft?.addressStreet ?? "");
+  const [addressCity, setAddressCity] = useState(draft?.addressCity ?? "");
+  const [addressState, setAddressState] = useState(draft?.addressState ?? "");
+  const [addressZip, setAddressZip] = useState(draft?.addressZip ?? "");
+  const [hourlyRate, setHourlyRate] = useState(draft?.hourlyRate ?? "");
+  const [phone, setPhone] = useState(draft?.phone ?? "");
 
   const step = STEP_ORDER[stepIndex];
 
@@ -190,8 +202,30 @@ export default function CompanySetupPage() {
       return;
     }
 
+    clearOnboardingDraft();
     setLoading(false);
     setLaunched(true);
+  }
+
+  useEffect(() => {
+    if (!draftComplete) return;
+    handleCreate();
+    // Auto-finish once, using the answers already collected in /signup —
+    // no need to make them click through the wizard again.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  if (draftComplete && loading && !launched) {
+    return (
+      <Card className="w-full">
+        <CardContent className="flex flex-col items-center justify-center gap-3 py-16">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-sm text-muted-foreground">
+            Finishing setup for {companyName}...
+          </p>
+        </CardContent>
+      </Card>
+    );
   }
 
   if (launched) {
