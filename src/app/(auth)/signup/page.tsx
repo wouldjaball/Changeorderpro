@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
@@ -17,21 +17,145 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Loader2, CheckCircle } from "lucide-react";
+import { Loader2, CheckCircle, PartyPopper } from "lucide-react";
+import confetti from "canvas-confetti";
+import { SampleChangeOrder } from "@/components/onboarding/sample-change-order";
+import type { CompanySettings } from "@/types";
+
+type StepKey = "name" | "website" | "address" | "rate" | "phone" | "account";
+
+const STEP_ORDER: StepKey[] = [
+  "name",
+  "website",
+  "address",
+  "rate",
+  "phone",
+  "account",
+];
 
 export default function SignupPage() {
   const router = useRouter();
   const supabase = createClient();
+  const [stepIndex, setStepIndex] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const [launched, setLaunched] = useState(false);
+  const [awaitingConfirmation, setAwaitingConfirmation] = useState(false);
+
+  // A stable id generated up front so a logo can be uploaded to storage
+  // before the company row exists.
+  const [companyId] = useState(() => crypto.randomUUID());
+
+  const [companyName, setCompanyName] = useState("");
+  const [website, setWebsite] = useState("");
+  const [logoUrl, setLogoUrl] = useState("");
+  const [scrapingLogo, setScrapingLogo] = useState(false);
+  const [addressStreet, setAddressStreet] = useState("");
+  const [addressCity, setAddressCity] = useState("");
+  const [addressState, setAddressState] = useState("");
+  const [addressZip, setAddressZip] = useState("");
+  const [hourlyRate, setHourlyRate] = useState("");
+  const [phone, setPhone] = useState("");
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState(false);
 
-  async function handleSignup(e: React.FormEvent) {
-    e.preventDefault();
+  const step = STEP_ORDER[stepIndex];
 
+  useEffect(() => {
+    if (!launched) return;
+    confetti({ particleCount: 120, spread: 90, origin: { y: 0.6 } });
+    const t1 = setTimeout(
+      () => confetti({ particleCount: 60, spread: 70, origin: { x: 0.2, y: 0.4 } }),
+      250
+    );
+    const t2 = setTimeout(
+      () => confetti({ particleCount: 60, spread: 70, origin: { x: 0.8, y: 0.4 } }),
+      400
+    );
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+    };
+  }, [launched]);
+
+  function generateSlug(name: string): string {
+    return name
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "");
+  }
+
+  function normalizeWebsite(url: string): string {
+    const trimmed = url.trim();
+    if (!trimmed) return "";
+    return /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+  }
+
+  async function tryFindLogo() {
+    setScrapingLogo(true);
+    try {
+      const res = await fetch("/api/onboarding/scrape-logo", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ website, companyId }),
+      });
+      const data = await res.json().catch(() => ({ logoUrl: null }));
+      if (data.logoUrl) {
+        setLogoUrl(data.logoUrl);
+      } else {
+        toast("We couldn't find a logo on your site automatically", {
+          description: "No problem — you can add one anytime in Settings.",
+        });
+      }
+    } catch {
+      toast("We couldn't find a logo on your site automatically", {
+        description: "No problem — you can add one anytime in Settings.",
+      });
+    } finally {
+      setScrapingLogo(false);
+    }
+  }
+
+  function canContinue(): boolean {
+    switch (step) {
+      case "name":
+        return companyName.trim().length > 0;
+      case "website":
+        return true;
+      case "address":
+        return (
+          addressStreet.trim().length > 0 &&
+          addressCity.trim().length > 0 &&
+          addressState.trim().length > 0 &&
+          addressZip.trim().length > 0
+        );
+      case "rate":
+        return Number(hourlyRate) > 0;
+      case "phone":
+        return phone.replace(/\D/g, "").length === 10;
+      case "account":
+        return (
+          fullName.trim().length > 0 &&
+          email.trim().length > 0 &&
+          password.length >= 8
+        );
+      default:
+        return true;
+    }
+  }
+
+  async function goNext() {
+    if (step === "website" && website.trim()) {
+      await tryFindLogo();
+    }
+    setStepIndex((i) => Math.min(i + 1, STEP_ORDER.length - 1));
+  }
+
+  function goBack() {
+    setStepIndex((i) => Math.max(i - 1, 0));
+  }
+
+  async function handleCreate() {
     if (password.length < 8) {
       toast.error("Password must be at least 8 characters");
       return;
@@ -43,7 +167,7 @@ export default function SignupPage() {
       email,
       password,
       options: {
-        data: { full_name: fullName, phone: phone || undefined },
+        data: { full_name: fullName },
         emailRedirectTo: `${window.location.origin}/auth/callback?next=/company-setup`,
       },
     });
@@ -58,31 +182,75 @@ export default function SignupPage() {
       await fetch("/api/auth/signup-webhook", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: fullName, email, phone: phone || null }),
+        body: JSON.stringify({ name: fullName, email, phone: null }),
       });
     } catch {}
 
-    // If email confirmation isn't required, signUp already returns an
-    // active session — skip the "check your email" screen entirely.
-    if (data.session) {
-      router.push("/company-setup");
-      router.refresh();
+    // If email confirmation is required, there's no authenticated session
+    // yet to satisfy RLS on companies/users — finish setup after they
+    // confirm (company-setup re-asks these questions from scratch).
+    if (!data.session || !data.user) {
+      setLoading(false);
+      setAwaitingConfirmation(true);
       return;
     }
 
-    setSuccess(true);
+    const slug = generateSlug(companyName) + "-" + Date.now().toString(36);
+    const settings: CompanySettings = {
+      default_approval_method: "link",
+      reminder_hours: 24,
+      co_prefix: "CO",
+      co_sequence_start: 1,
+      default_labor_rate: Number(hourlyRate),
+      terms_text: null,
+      brand_color: null,
+    };
+
+    const { error: companyError } = await supabase.from("companies").insert({
+      id: companyId,
+      name: companyName,
+      slug,
+      phone: phone || null,
+      website: normalizeWebsite(website) || null,
+      logo_url: logoUrl || null,
+      address_street: addressStreet || null,
+      address_city: addressCity || null,
+      address_state: addressState || null,
+      address_zip: addressZip || null,
+      settings,
+    });
+
+    if (companyError) {
+      toast.error("Failed to create company: " + companyError.message);
+      setLoading(false);
+      return;
+    }
+
+    const { error: userError } = await supabase
+      .from("users")
+      .update({ company_id: companyId, role: "admin" })
+      .eq("id", data.user.id);
+
+    if (userError) {
+      toast.error("Failed to link account: " + userError.message);
+      setLoading(false);
+      return;
+    }
+
     setLoading(false);
+    setLaunched(true);
   }
 
-  if (success) {
+  if (awaitingConfirmation) {
     return (
       <Card>
         <CardHeader className="text-center">
           <CheckCircle className="h-12 w-12 mx-auto text-green-500 mb-2" />
           <CardTitle>Check your email</CardTitle>
           <CardDescription>
-            We sent a confirmation link to <strong>{email}</strong>. Click it to
-            activate your account, then set up your company.
+            We sent a confirmation link to <strong>{email}</strong>. Click it
+            to activate your account and finish setting up{" "}
+            {companyName || "your company"}.
           </CardDescription>
         </CardHeader>
         <CardFooter className="justify-center">
@@ -94,77 +262,301 @@ export default function SignupPage() {
     );
   }
 
+  if (launched) {
+    return (
+      <Card className="w-full">
+        <CardHeader className="text-center">
+          <PartyPopper className="h-10 w-10 mx-auto text-primary mb-1" />
+          <CardTitle className="text-xl">You&apos;re all set up!</CardTitle>
+          <CardDescription>
+            Here&apos;s an example change order from {companyName}, so you know
+            what your clients will see.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <SampleChangeOrder
+            companyName={companyName}
+            logoUrl={logoUrl}
+            addressStreet={addressStreet}
+            addressCity={addressCity}
+            addressState={addressState}
+            addressZip={addressZip}
+            phone={phone}
+            hourlyRate={hourlyRate}
+          />
+          <Button
+            className="w-full h-12"
+            onClick={() => {
+              router.push("/dashboard");
+              router.refresh();
+            }}
+          >
+            Go to my dashboard
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
-    <Card>
+    <Card className="w-full">
       <CardHeader>
-        <CardTitle>Create your account</CardTitle>
-        <CardDescription>
-          Get started with ChangeOrder Pro — 14-day free trial
-        </CardDescription>
+        <div className="mb-2 h-1.5 w-full rounded-full bg-muted overflow-hidden">
+          <div
+            className="h-full rounded-full bg-primary transition-all"
+            style={{
+              width: `${((stepIndex + 1) / STEP_ORDER.length) * 100}%`,
+            }}
+          />
+        </div>
+        {step === "name" && (
+          <>
+            <p className="text-sm font-medium text-primary mb-1">
+              Start your free trial
+            </p>
+            <CardTitle>What&apos;s the name of your company?</CardTitle>
+            <CardDescription>
+              This is what will appear on your change orders.
+            </CardDescription>
+          </>
+        )}
+        {step === "website" && (
+          <>
+            <CardTitle>Do you have a website?</CardTitle>
+            <CardDescription>
+              Strongly suggested if you have one — we&apos;ll try to pull your
+              logo from it automatically. If not, no problem, just skip this.
+            </CardDescription>
+          </>
+        )}
+        {step === "address" && (
+          <>
+            <CardTitle>Where&apos;s your business located?</CardTitle>
+            <CardDescription>
+              Necessary for a professional looking change order.
+            </CardDescription>
+          </>
+        )}
+        {step === "rate" && (
+          <>
+            <CardTitle>What&apos;s your hourly rate?</CardTitle>
+            <CardDescription>
+              This can be changed any time. If you send an hourly proposal,
+              this is the rate we&apos;ll use.
+            </CardDescription>
+          </>
+        )}
+        {step === "phone" && (
+          <>
+            <CardTitle>Best number to reach you?</CardTitle>
+            <CardDescription>
+              This is where someone can contact you regarding this change
+              order.
+            </CardDescription>
+          </>
+        )}
+        {step === "account" && (
+          <>
+            <CardTitle>Last step — create your login</CardTitle>
+            <CardDescription>
+              This is how you&apos;ll sign back in to {companyName || "your account"}.
+            </CardDescription>
+          </>
+        )}
       </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSignup} className="space-y-4">
+      <CardContent className="space-y-4">
+        {step === "name" && (
           <div className="space-y-2">
-            <Label htmlFor="fullName">Full name</Label>
+            <Label htmlFor="companyName">Company name *</Label>
             <Input
-              id="fullName"
-              placeholder="John Smith"
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
+              id="companyName"
+              placeholder="Smith Construction LLC"
+              value={companyName}
+              onChange={(e) => setCompanyName(e.target.value)}
+              autoFocus
               required
-              autoComplete="name"
             />
           </div>
+        )}
+
+        {step === "website" && (
           <div className="space-y-2">
-            <Label htmlFor="email">Work email</Label>
+            <Label htmlFor="website">Website</Label>
             <Input
-              id="email"
-              type="email"
-              placeholder="you@company.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              autoComplete="email"
+              id="website"
+              type="text"
+              placeholder="yourcompany.com"
+              value={website}
+              onChange={(e) => setWebsite(e.target.value)}
+              autoFocus
             />
           </div>
+        )}
+
+        {step === "address" && (
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="street">Street address *</Label>
+              <Input
+                id="street"
+                placeholder="123 Main St"
+                value={addressStreet}
+                onChange={(e) => setAddressStreet(e.target.value)}
+                autoFocus
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label htmlFor="city">City *</Label>
+                <Input
+                  id="city"
+                  placeholder="Austin"
+                  value={addressCity}
+                  onChange={(e) => setAddressCity(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="state">State *</Label>
+                <Input
+                  id="state"
+                  placeholder="TX"
+                  maxLength={2}
+                  value={addressState}
+                  onChange={(e) => setAddressState(e.target.value)}
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="zip">ZIP code *</Label>
+              <Input
+                id="zip"
+                placeholder="78701"
+                value={addressZip}
+                onChange={(e) => setAddressZip(e.target.value)}
+              />
+            </div>
+          </div>
+        )}
+
+        {step === "rate" && (
           <div className="space-y-2">
-            <Label htmlFor="phone">Phone number</Label>
+            <Label htmlFor="rate">Hourly rate ($/hr) *</Label>
+            <Input
+              id="rate"
+              type="number"
+              step="0.01"
+              min="0"
+              placeholder="85.00"
+              value={hourlyRate}
+              onChange={(e) => setHourlyRate(e.target.value)}
+              autoFocus
+            />
+          </div>
+        )}
+
+        {step === "phone" && (
+          <div className="space-y-2">
+            <Label htmlFor="phone">Phone number *</Label>
             <Input
               id="phone"
               type="tel"
               placeholder="(555) 123-4567"
               value={phone}
               onChange={(e) => setPhone(formatPhoneInput(e.target.value))}
-              autoComplete="tel"
+              autoFocus
             />
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
-            <Input
-              id="password"
-              type="password"
-              placeholder="At least 8 characters"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              minLength={8}
-              autoComplete="new-password"
-            />
+        )}
+
+        {step === "account" && (
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="fullName">Your name *</Label>
+              <Input
+                id="fullName"
+                placeholder="John Smith"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                autoFocus
+                required
+                autoComplete="name"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="email">Work email *</Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="you@company.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                autoComplete="email"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="password">Password *</Label>
+              <Input
+                id="password"
+                type="password"
+                placeholder="At least 8 characters"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                minLength={8}
+                autoComplete="new-password"
+              />
+            </div>
           </div>
-          <Button type="submit" className="w-full" disabled={loading}>
-            {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Create account
-          </Button>
-        </form>
+        )}
+
+        <div className="flex gap-2 pt-2">
+          {stepIndex > 0 && (
+            <Button
+              type="button"
+              variant="outline"
+              className="flex-1"
+              onClick={goBack}
+              disabled={loading || scrapingLogo}
+            >
+              Back
+            </Button>
+          )}
+          {step === "account" ? (
+            <Button
+              className="flex-1"
+              onClick={handleCreate}
+              disabled={loading || !canContinue()}
+            >
+              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Start my free trial
+            </Button>
+          ) : (
+            <Button
+              className="flex-1"
+              onClick={goNext}
+              disabled={!canContinue() || scrapingLogo}
+            >
+              {scrapingLogo && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {scrapingLogo
+                ? "Looking for your logo..."
+                : step === "website" && !website
+                  ? "Skip"
+                  : "Continue"}
+            </Button>
+          )}
+        </div>
       </CardContent>
-      <CardFooter className="justify-center">
-        <p className="text-base text-muted-foreground">
-          Already have an account?{" "}
-          <Link href="/login" className="text-primary hover:underline">
-            Sign in
-          </Link>
-        </p>
-      </CardFooter>
+      {step === "name" && (
+        <CardFooter className="justify-center">
+          <p className="text-base text-muted-foreground">
+            Already have an account?{" "}
+            <Link href="/login" className="text-primary hover:underline">
+              Sign in
+            </Link>
+          </p>
+        </CardFooter>
+      )}
     </Card>
   );
 }
