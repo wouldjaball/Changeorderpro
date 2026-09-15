@@ -23,6 +23,10 @@ function statusColor(status: string): string {
       return "bg-gray-100 text-gray-600";
     case "invoiced":
       return "bg-purple-100 text-purple-800";
+    case "paid":
+      return "bg-emerald-100 text-emerald-800";
+    case "archived":
+      return "bg-slate-100 text-slate-600";
     default:
       return "bg-gray-100 text-gray-800";
   }

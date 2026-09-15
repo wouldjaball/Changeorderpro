@@ -15,11 +15,14 @@ import {
   Eye,
   Bell,
   Pencil,
+  Banknote,
+  Archive,
 } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { SendDialog } from "@/components/co/send-dialog";
 import { PdfDownloadButton } from "@/components/co/pdf-download-button";
+import { COStatusActions } from "@/components/co/co-status-actions";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -36,6 +39,8 @@ const statusConfig: Record<
   declined: { color: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300", icon: XCircle, label: "Declined" },
   void: { color: "bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-500", icon: XCircle, label: "Void" },
   invoiced: { color: "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300", icon: CheckCircle, label: "Invoiced" },
+  paid: { color: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-300", icon: Banknote, label: "Paid" },
+  archived: { color: "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400", icon: Archive, label: "Archived" },
 };
 
 export default async function ChangeOrderDetailPage({
@@ -399,6 +404,7 @@ export default async function ChangeOrderDetailPage({
             Approved
           </Badge>
         )}
+        <COStatusActions changeOrderId={co.id} status={co.status} />
         <PdfDownloadButton
           changeOrderId={co.id}
           coNumber={co.co_number}

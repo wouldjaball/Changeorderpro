@@ -250,6 +250,8 @@ const statusColors: Record<string, { bg: string; text: string }> = {
   declined: { bg: "#fee2e2", text: "#991b1b" },
   void: { bg: "#f3f4f6", text: "#6b7280" },
   invoiced: { bg: "#f3e8ff", text: "#6b21a8" },
+  paid: { bg: "#d1fae5", text: "#065f46" },
+  archived: { bg: "#f1f5f9", text: "#475569" },
 };
 
 const statusLabels: Record<string, string> = {
@@ -259,6 +261,8 @@ const statusLabels: Record<string, string> = {
   declined: "DECLINED",
   void: "VOID",
   invoiced: "INVOICED",
+  paid: "PAID",
+  archived: "ARCHIVED",
 };
 
 function formatCurrency(amount: number): string {
