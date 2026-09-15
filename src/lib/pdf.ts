@@ -16,6 +16,7 @@ import type {
   COPhoto,
   ApprovalEvent,
 } from "@/types";
+import { formatPhone } from "@/lib/utils";
 
 // ==========================================
 // Styles
@@ -355,7 +356,7 @@ function CODocument({
             ? React.createElement(Text, { style: styles.companyDetail }, companyAddress)
             : null,
           company.phone
-            ? React.createElement(Text, { style: styles.companyDetail }, company.phone)
+            ? React.createElement(Text, { style: styles.companyDetail }, formatPhone(company.phone))
             : null
         ),
         React.createElement(
