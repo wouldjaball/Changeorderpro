@@ -74,6 +74,10 @@ export function SendDialog({
   const [open, setOpen] = useState(false);
   const [method, setMethod] = useState<ApprovalMethod>("both");
   const [loading, setLoading] = useState(false);
+  const [pendingSms, setPendingSms] = useState<{
+    href: string;
+    emailAlsoSent: boolean;
+  } | null>(null);
 
   const canSMS = !!clientPhone;
   const allEmails: string[] = [];
@@ -115,7 +119,12 @@ export function SendDialog({
       }
 
       // If SMS is part of the method, hand off to the contractor's own phone —
-      // copy the message so it can be pasted, and try to open their texting app.
+      // copy the message so it can be pasted, and let them open their texting app.
+      // A JS-triggered navigation to a custom scheme (sms:) after this async
+      // fetch reliably fails on iOS Safari and often on desktop Chrome too, since
+      // the browser no longer treats it as tied to the original tap/click — so we
+      // surface a real button instead of auto-navigating, giving the user a fresh
+      // gesture to trigger the handoff.
       if ((method === "sms" || method === "both") && data.smsBody && data.clientPhone) {
         navigator.clipboard?.writeText(data.smsBody);
         const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
@@ -123,10 +132,12 @@ export function SendDialog({
         const smsHref = `sms:${data.clientPhone}${separator}body=${encodeURIComponent(data.smsBody)}`;
         toast.success(
           method === "both"
-            ? "Email sent. Message copied — opening your texting app..."
-            : "Message copied — opening your texting app..."
+            ? "Email sent. Message copied — tap below to open your texting app."
+            : "Message copied — tap below to open your texting app."
         );
-        window.location.href = smsHref;
+        setPendingSms({ href: smsHref, emailAlsoSent: method === "both" });
+        router.refresh();
+        return;
       } else if (method === "link" && data.approvalUrl) {
         navigator.clipboard?.writeText(data.approvalUrl);
         toast.success("Approval link copied to clipboard");
@@ -143,8 +154,15 @@ export function SendDialog({
     }
   }
 
+  function handleOpenChange(next: boolean) {
+    setOpen(next);
+    if (!next) {
+      setPendingSms(null);
+    }
+  }
+
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger>
         {children}
       </DialogTrigger>
@@ -157,106 +175,146 @@ export function SendDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 py-2">
-          {/* Contact info summary */}
-          <div className="rounded-lg border p-3 text-base space-y-1">
-            {clientName && (
-              <p>
-                <span className="text-muted-foreground">To: </span>
-                <span className="font-medium">{clientName}</span>
-              </p>
-            )}
-            {clientPhone && (
-              <p>
-                <span className="text-muted-foreground">Phone: </span>
-                {clientPhone}
-              </p>
-            )}
-            {allEmails.length > 0 && (
-              <div>
-                <span className="text-muted-foreground">Email: </span>
-                {allEmails.map((e, i) => (
-                  <span key={e}>
-                    {i > 0 && ", "}
-                    {e}
-                  </span>
-                ))}
+        {pendingSms ? (
+          <>
+            <div className="space-y-3 py-2">
+              <div className="rounded-lg border p-3 text-base space-y-1">
+                {pendingSms.emailAlsoSent && (
+                  <p className="text-muted-foreground">
+                    Email sent to {clientName || "the client"}.
+                  </p>
+                )}
+                <p>
+                  Message copied to your clipboard. Tap below to open your
+                  texting app with it pre-filled.
+                </p>
               </div>
-            )}
-            {!clientPhone && !clientEmail && (
-              <p className="text-destructive">
-                No contact info — add client email or phone to the project first
-              </p>
-            )}
-          </div>
-
-          {/* Method selection */}
-          <div className="space-y-2">
-            <Label>Delivery method</Label>
-            <div className="grid gap-2">
-              {METHODS.map((m) => {
-                const Icon = m.icon;
-                const disabled =
-                  (m.value === "sms" && !canSMS) ||
-                  (m.value === "email" && !canEmail) ||
-                  (m.value === "both" && (!canSMS || !canEmail));
-
-                return (
-                  <button
-                    key={m.value}
-                    type="button"
-                    disabled={disabled}
-                    onClick={() => setMethod(m.value)}
-                    className={cn(
-                      "flex items-center gap-3 rounded-lg border p-3 text-left transition-colors",
-                      method === m.value
-                        ? "border-primary bg-primary/5"
-                        : "hover:bg-accent",
-                      disabled && "opacity-50 cursor-not-allowed"
-                    )}
-                  >
-                    <Icon
-                      className={cn(
-                        "h-5 w-5 shrink-0",
-                        method === m.value
-                          ? "text-primary"
-                          : "text-muted-foreground"
-                      )}
-                    />
-                    <div>
-                      <p className="text-base font-medium">{m.label}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {m.description}
-                      </p>
-                    </div>
-                  </button>
-                );
-              })}
             </div>
-          </div>
-        </div>
+            <div className="flex gap-2 pt-2">
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => handleOpenChange(false)}
+              >
+                Done
+              </Button>
+              <Button
+                className="flex-1"
+                render={<a href={pendingSms.href} />}
+                onClick={() => {
+                  setOpen(false);
+                  router.refresh();
+                }}
+              >
+                <MessageSquare className="mr-2 h-4 w-4" />
+                Open Messages
+              </Button>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="space-y-4 py-2">
+              {/* Contact info summary */}
+              <div className="rounded-lg border p-3 text-base space-y-1">
+                {clientName && (
+                  <p>
+                    <span className="text-muted-foreground">To: </span>
+                    <span className="font-medium">{clientName}</span>
+                  </p>
+                )}
+                {clientPhone && (
+                  <p>
+                    <span className="text-muted-foreground">Phone: </span>
+                    {clientPhone}
+                  </p>
+                )}
+                {allEmails.length > 0 && (
+                  <div>
+                    <span className="text-muted-foreground">Email: </span>
+                    {allEmails.map((e, i) => (
+                      <span key={e}>
+                        {i > 0 && ", "}
+                        {e}
+                      </span>
+                    ))}
+                  </div>
+                )}
+                {!clientPhone && !clientEmail && (
+                  <p className="text-destructive">
+                    No contact info — add client email or phone to the project first
+                  </p>
+                )}
+              </div>
 
-        <div className="flex gap-2 pt-2">
-          <Button
-            variant="outline"
-            className="flex-1"
-            onClick={() => setOpen(false)}
-          >
-            Cancel
-          </Button>
-          <Button
-            className="flex-1"
-            onClick={handleSend}
-            disabled={loading || (!canSMS && !canEmail && method !== "link")}
-          >
-            {loading ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            ) : (
-              <Send className="mr-2 h-4 w-4" />
-            )}
-            Send Now
-          </Button>
-        </div>
+              {/* Method selection */}
+              <div className="space-y-2">
+                <Label>Delivery method</Label>
+                <div className="grid gap-2">
+                  {METHODS.map((m) => {
+                    const Icon = m.icon;
+                    const disabled =
+                      (m.value === "sms" && !canSMS) ||
+                      (m.value === "email" && !canEmail) ||
+                      (m.value === "both" && (!canSMS || !canEmail));
+
+                    return (
+                      <button
+                        key={m.value}
+                        type="button"
+                        disabled={disabled}
+                        onClick={() => setMethod(m.value)}
+                        className={cn(
+                          "flex items-center gap-3 rounded-lg border p-3 text-left transition-colors",
+                          method === m.value
+                            ? "border-primary bg-primary/5"
+                            : "hover:bg-accent",
+                          disabled && "opacity-50 cursor-not-allowed"
+                        )}
+                      >
+                        <Icon
+                          className={cn(
+                            "h-5 w-5 shrink-0",
+                            method === m.value
+                              ? "text-primary"
+                              : "text-muted-foreground"
+                          )}
+                        />
+                        <div>
+                          <p className="text-base font-medium">{m.label}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {m.description}
+                          </p>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-2 pt-2">
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => handleOpenChange(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                className="flex-1"
+                onClick={handleSend}
+                disabled={loading || (!canSMS && !canEmail && method !== "link")}
+              >
+                {loading ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Send className="mr-2 h-4 w-4" />
+                )}
+                Send Now
+              </Button>
+            </div>
+          </>
+        )}
       </DialogContent>
     </Dialog>
   );
