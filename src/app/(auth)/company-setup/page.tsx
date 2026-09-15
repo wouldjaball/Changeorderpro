@@ -15,9 +15,14 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Loader2, PartyPopper } from "lucide-react";
+import { Loader2, PartyPopper, Mail } from "lucide-react";
 import confetti from "canvas-confetti";
 import { SampleChangeOrder } from "@/components/onboarding/sample-change-order";
+import {
+  loadOnboardingDraft,
+  clearOnboardingDraft,
+  isOnboardingDraftComplete,
+} from "@/lib/onboarding-draft";
 import type { CompanySettings } from "@/types";
 
 type StepKey = "name" | "website" | "address" | "rate" | "phone";
@@ -27,24 +32,33 @@ const STEP_ORDER: StepKey[] = ["name", "website", "address", "rate", "phone"];
 export default function CompanySetupPage() {
   const router = useRouter();
   const supabase = createClient();
+
+  // Picks up where /signup left off when email confirmation was required
+  // and the wizard's answers were stashed before the redirect.
+  const [draft] = useState(() => loadOnboardingDraft());
+  const draftComplete = draft ? isOnboardingDraftComplete(draft) : false;
+
   const [stepIndex, setStepIndex] = useState(0);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(() => draftComplete);
   const [launched, setLaunched] = useState(false);
+  const [sampleCoSent, setSampleCoSent] = useState(false);
+  const [userEmail, setUserEmail] = useState("");
 
   // A stable id generated up front so a logo can be uploaded to storage
-  // before the company row exists.
-  const [companyId] = useState(() => crypto.randomUUID());
+  // before the company row exists — reused from the draft so it matches
+  // whatever logo was already scraped/uploaded under it.
+  const [companyId] = useState(() => draft?.companyId ?? crypto.randomUUID());
 
-  const [companyName, setCompanyName] = useState("");
-  const [website, setWebsite] = useState("");
-  const [logoUrl, setLogoUrl] = useState("");
+  const [companyName, setCompanyName] = useState(draft?.companyName ?? "");
+  const [website, setWebsite] = useState(draft?.website ?? "");
+  const [logoUrl, setLogoUrl] = useState(draft?.logoUrl ?? "");
   const [scrapingLogo, setScrapingLogo] = useState(false);
-  const [addressStreet, setAddressStreet] = useState("");
-  const [addressCity, setAddressCity] = useState("");
-  const [addressState, setAddressState] = useState("");
-  const [addressZip, setAddressZip] = useState("");
-  const [hourlyRate, setHourlyRate] = useState("");
-  const [phone, setPhone] = useState("");
+  const [addressStreet, setAddressStreet] = useState(draft?.addressStreet ?? "");
+  const [addressCity, setAddressCity] = useState(draft?.addressCity ?? "");
+  const [addressState, setAddressState] = useState(draft?.addressState ?? "");
+  const [addressZip, setAddressZip] = useState(draft?.addressZip ?? "");
+  const [hourlyRate, setHourlyRate] = useState(draft?.hourlyRate ?? "");
+  const [phone, setPhone] = useState(draft?.phone ?? "");
 
   const step = STEP_ORDER[stepIndex];
 
@@ -147,6 +161,7 @@ export default function CompanySetupPage() {
       router.push("/login");
       return;
     }
+    setUserEmail(user.email || "");
 
     const slug = generateSlug(companyName) + "-" + Date.now().toString(36);
     const settings: CompanySettings = {
@@ -190,8 +205,42 @@ export default function CompanySetupPage() {
       return;
     }
 
+    // Send a real sample change order to the account owner's own inbox so
+    // they experience the exact approval email/link/signature flow their
+    // clients will go through, instead of just looking at a static preview.
+    try {
+      const res = await fetch("/api/onboarding/send-sample-co", {
+        method: "POST",
+      });
+      setSampleCoSent(res.ok);
+    } catch {
+      setSampleCoSent(false);
+    }
+
+    clearOnboardingDraft();
     setLoading(false);
     setLaunched(true);
+  }
+
+  useEffect(() => {
+    if (!draftComplete) return;
+    handleCreate();
+    // Auto-finish once, using the answers already collected in /signup —
+    // no need to make them click through the wizard again.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  if (draftComplete && loading && !launched) {
+    return (
+      <Card className="w-full">
+        <CardContent className="flex flex-col items-center justify-center gap-3 py-16">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-sm text-muted-foreground">
+            Finishing setup for {companyName}...
+          </p>
+        </CardContent>
+      </Card>
+    );
   }
 
   if (launched) {
@@ -201,21 +250,36 @@ export default function CompanySetupPage() {
           <PartyPopper className="h-10 w-10 mx-auto text-primary mb-1" />
           <CardTitle className="text-xl">You&apos;re all set up!</CardTitle>
           <CardDescription>
-            Here&apos;s an example change order from {companyName}, so you know
-            what your clients will see.
+            {sampleCoSent
+              ? `We just sent a sample change order to ${userEmail} — this is exactly what your clients will get.`
+              : `Here's an example change order from ${companyName}, so you know what your clients will see.`}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <SampleChangeOrder
-            companyName={companyName}
-            logoUrl={logoUrl}
-            addressStreet={addressStreet}
-            addressCity={addressCity}
-            addressState={addressState}
-            addressZip={addressZip}
-            phone={phone}
-            hourlyRate={hourlyRate}
-          />
+          {sampleCoSent ? (
+            <div className="rounded-lg border border-primary/20 bg-primary/5 p-4 flex gap-3">
+              <Mail className="h-5 w-5 text-primary shrink-0 mt-0.5" />
+              <div className="space-y-1">
+                <p className="text-sm font-medium">Check your email and sign it</p>
+                <p className="text-sm text-muted-foreground">
+                  Open the change order we sent to <strong>{userEmail}</strong>{" "}
+                  and click Approve to see the whole signing experience your
+                  clients will go through, start to finish.
+                </p>
+              </div>
+            </div>
+          ) : (
+            <SampleChangeOrder
+              companyName={companyName}
+              logoUrl={logoUrl}
+              addressStreet={addressStreet}
+              addressCity={addressCity}
+              addressState={addressState}
+              addressZip={addressZip}
+              phone={phone}
+              hourlyRate={hourlyRate}
+            />
+          )}
           <Button
             className="w-full h-12"
             onClick={() => {
