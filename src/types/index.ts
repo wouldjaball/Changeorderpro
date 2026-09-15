@@ -65,8 +65,6 @@ export interface Project {
   client_emails: string[];
   client_phone: string | null;
   client_phone_secondary: string | null;
-  sms_consent: boolean;
-  sms_consent_at: string | null;
   status: ProjectStatus;
   created_by: string | null;
   created_at: string;

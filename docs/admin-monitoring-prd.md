@@ -30,7 +30,7 @@ The console lives at `admin.changeorderpro.com`, gated by Supabase Auth + an ema
 
 ### 2.1 The product
 
-ChangeOrder Pro is a multi-tenant Next.js + Supabase app. Each contractor business is a `company` (tenant); each company has one or more `users`; each company creates `change_orders` and sends them to their own customers via email and/or SMS. Twilio handles SMS, transactional email goes through whatever provider the customer-facing app uses (assume Postmark or Resend; not load-bearing for this PRD).
+ChangeOrder Pro is a multi-tenant Next.js + Supabase app. Each contractor business is a `company` (tenant); each company has one or more `users`; each company creates `change_orders` and sends them to their own customers via email and/or SMS. SMS is not sent by the platform — it hands the message off to the contractor's own phone to send; transactional email goes through whatever provider the customer-facing app uses (assume Postmark or Resend; not load-bearing for this PRD).
 
 Stripe handles subscriptions; Stripe webhooks already sync subscription state into Supabase.
 
@@ -274,7 +274,6 @@ The drill-down view. Single source of truth for one company.
   - Email enabled (yes/no, based on whether the company has any email-enabled change orders) + total emails sent (count from `messages` where `channel = 'email'`)
   - SMS enabled (yes/no) + total SMS sent (count from `messages` where `channel = 'sms'`)
   - Pie chart: % email vs % SMS sent (last 90 days)
-  - Twilio number assigned (if applicable)
 - Acceptance:
   - \[ \] Pie chart renders only if total messages &gt; 0; otherwise shows "No messages sent yet"
   - \[ \] Counts are accurate as of last `mv_company_stats` refresh
@@ -417,7 +416,7 @@ messages (
   channel         text not null,            -- 'email'|'sms'
   to_address      text not null,            -- email or phone
   status          text not null,            -- 'queued'|'sent'|'delivered'|'failed'|'bounced'
-  provider_id     text,                     -- twilio sid or postmark message id
+  provider_id     text,                     -- postmark message id (sms has none — it's sent from the contractor's own phone)
   created_at      timestamptz default now(),
   delivered_at    timestamptz
 );

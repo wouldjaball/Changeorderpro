@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { generateApprovalToken } from "@/lib/tokens";
-import { sendSMS, smsApprovalRequest, smsTMApprovalRequest } from "@/lib/twilio";
+import { smsApprovalRequest, smsTMApprovalRequest } from "@/lib/sms";
 import { sendEmail, emailApprovalRequest } from "@/lib/resend";
 
 export async function POST(request: NextRequest) {
@@ -57,14 +57,6 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Enforce SMS opt-in consent for A2P 10DLC compliance
-  if ((method === "sms" || method === "both") && !project.sms_consent) {
-    return NextResponse.json(
-      { error: "SMS consent not recorded. Edit the project to confirm client opted in before sending via SMS." },
-      { status: 400 }
-    );
-  }
-
   // Get company info
   const { data: company } = await supabase
     .from("companies")
@@ -109,57 +101,42 @@ export async function POST(request: NextRequest) {
   // Send via selected channels
   const notifications: Promise<void>[] = [];
 
-  // SMS
+  // SMS — not sent server-side. We just compose the message and log intent;
+  // the client opens the contractor's own phone's texting app to actually send it.
+  let smsBody: string | undefined;
   if ((method === "sms" || method === "both") && project.client_phone) {
-    const smsPromise = (async () => {
-      const smsTemplate =
-        co.pricing_type === "tm"
-          ? smsTMApprovalRequest({
-              companyName: company?.name || "Your contractor",
-              coNumber: co.co_number,
-              projectName: project.name,
-              coTitle: co.title,
-              amount,
-              rate: "varies",
-              approvalLink: approvalUrl,
-            })
-          : smsApprovalRequest({
-              companyName: company?.name || "Your contractor",
-              coNumber: co.co_number,
-              projectName: project.name,
-              coTitle: co.title,
-              amount,
-              approvalLink: approvalUrl,
-            });
+    smsBody =
+      co.pricing_type === "tm"
+        ? smsTMApprovalRequest({
+            companyName: company?.name || "Your contractor",
+            coNumber: co.co_number,
+            projectName: project.name,
+            coTitle: co.title,
+            amount,
+            rate: "varies",
+            approvalLink: approvalUrl,
+          })
+        : smsApprovalRequest({
+            companyName: company?.name || "Your contractor",
+            coNumber: co.co_number,
+            projectName: project.name,
+            coTitle: co.title,
+            amount,
+            approvalLink: approvalUrl,
+          });
 
-      try {
-        const result = await sendSMS({
-          to: project.client_phone!,
-          body: smsTemplate,
-        });
-
+    notifications.push(
+      (async () => {
         await admin.from("notifications_log").insert({
           change_order_id: co.id,
           company_id: co.company_id,
           channel: "sms",
-          recipient: project.client_phone!,
+          recipient: project.client_phone,
           template_type: "approval_request",
-          external_id: result.sid,
-          status: "sent",
+          status: "link_generated",
         });
-      } catch (err) {
-        await admin.from("notifications_log").insert({
-          change_order_id: co.id,
-          company_id: co.company_id,
-          channel: "sms",
-          recipient: project.client_phone!,
-          template_type: "approval_request",
-          status: "failed",
-          error_message: err instanceof Error ? err.message : "Unknown error",
-        });
-      }
-    })();
-    notifications.push(smsPromise);
+      })()
+    );
   }
 
   // Email — send to primary + additional emails
@@ -234,6 +211,8 @@ export async function POST(request: NextRequest) {
 
   return NextResponse.json({
     success: true,
-    approvalUrl: method === "link" ? approvalUrl : undefined,
+    approvalUrl,
+    smsBody,
+    clientPhone: smsBody ? project.client_phone : undefined,
   });
 }

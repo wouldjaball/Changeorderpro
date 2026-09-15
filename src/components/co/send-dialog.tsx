@@ -25,7 +25,6 @@ interface SendDialogProps {
   clientEmail?: string;
   clientEmails?: string[];
   clientPhone?: string;
-  smsConsent?: boolean;
   children: React.ReactNode;
 }
 
@@ -45,7 +44,7 @@ const METHODS: {
     value: "sms",
     label: "SMS Only",
     icon: MessageSquare,
-    description: "Text message with reply-to-approve",
+    description: "Opens your phone's messenger with the link pre-filled",
   },
   {
     value: "email",
@@ -69,7 +68,6 @@ export function SendDialog({
   clientEmail,
   clientEmails = [],
   clientPhone,
-  smsConsent,
   children,
 }: SendDialogProps) {
   const router = useRouter();
@@ -77,7 +75,7 @@ export function SendDialog({
   const [method, setMethod] = useState<ApprovalMethod>("both");
   const [loading, setLoading] = useState(false);
 
-  const canSMS = !!clientPhone && !!smsConsent;
+  const canSMS = !!clientPhone;
   const allEmails: string[] = [];
   if (clientEmail) allEmails.push(clientEmail);
   for (const e of clientEmails) {
@@ -116,12 +114,24 @@ export function SendDialog({
         return;
       }
 
-      toast.success(`Change order sent to ${clientName || "client"}!`);
-
-      // If link-only, show the approval link
-      if (method === "link" && data.approvalUrl) {
+      // If SMS is part of the method, hand off to the contractor's own phone —
+      // copy the message so it can be pasted, and try to open their texting app.
+      if ((method === "sms" || method === "both") && data.smsBody && data.clientPhone) {
+        navigator.clipboard?.writeText(data.smsBody);
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+        const separator = isIOS ? "&" : "?";
+        const smsHref = `sms:${data.clientPhone}${separator}body=${encodeURIComponent(data.smsBody)}`;
+        toast.success(
+          method === "both"
+            ? "Email sent. Message copied — opening your texting app..."
+            : "Message copied — opening your texting app..."
+        );
+        window.location.href = smsHref;
+      } else if (method === "link" && data.approvalUrl) {
         navigator.clipboard?.writeText(data.approvalUrl);
-        toast.info("Approval link copied to clipboard");
+        toast.success("Approval link copied to clipboard");
+      } else {
+        toast.success(`Change order sent to ${clientName || "client"}!`);
       }
 
       setOpen(false);
@@ -176,11 +186,6 @@ export function SendDialog({
             {!clientPhone && !clientEmail && (
               <p className="text-destructive">
                 No contact info — add client email or phone to the project first
-              </p>
-            )}
-            {clientPhone && !smsConsent && (
-              <p className="text-sm text-amber-600">
-                SMS consent not recorded — edit the project to confirm client opted in before sending via SMS
               </p>
             )}
           </div>
