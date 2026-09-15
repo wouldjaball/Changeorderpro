@@ -5,6 +5,7 @@ import {
   getTeamMembers,
   getCompanyChangeOrders,
   getCompanyEvents,
+  refreshMaterializedViews,
 } from "@/lib/admin/queries";
 import { notFound } from "next/navigation";
 import Link from "next/link";
@@ -16,6 +17,7 @@ import { OverviewPanel } from "@/components/admin/profile/OverviewPanel";
 import { TeamPanel } from "@/components/admin/profile/TeamPanel";
 import { ChangeOrdersPanel } from "@/components/admin/profile/ChangeOrdersPanel";
 import { ActivityTimeline } from "@/components/admin/profile/ActivityTimeline";
+import { DangerZone } from "@/components/admin/profile/DangerZone";
 
 interface PageProps {
   params: Promise<{ companyId: string }>;
@@ -23,6 +25,8 @@ interface PageProps {
 
 export default async function CompanyProfilePage({ params }: PageProps) {
   const { companyId } = await params;
+
+  await refreshMaterializedViews();
 
   const [stats, team, changeOrders, events] = await Promise.all([
     getCompanyStats(companyId),
@@ -70,6 +74,8 @@ export default async function CompanyProfilePage({ params }: PageProps) {
         orders={changeOrders.data}
         total={changeOrders.total}
       />
+
+      <DangerZone companyId={stats.company_id} companyName={stats.company_name} />
     </div>
   );
 }
