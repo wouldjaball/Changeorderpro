@@ -18,11 +18,18 @@ export function generateApprovalToken(): {
     .slice(0, 12);
 
   const token = `${id}-${signature}`;
-  const expiresAt = new Date(
-    Date.now() + TOKEN_EXPIRY_HOURS * 60 * 60 * 1000
-  );
+  const expiresAt = freshExpiry();
 
   return { token, expiresAt };
+}
+
+/**
+ * A fresh expiry timestamp, TOKEN_EXPIRY_HOURS from now.
+ * Used both when minting a new token and when a resend extends an
+ * still-valid, unclicked token's lifetime.
+ */
+export function freshExpiry(): Date {
+  return new Date(Date.now() + TOKEN_EXPIRY_HOURS * 60 * 60 * 1000);
 }
 
 /**

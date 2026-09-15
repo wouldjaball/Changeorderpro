@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { generateApprovalToken } from "@/lib/tokens";
+import { generateApprovalToken, freshExpiry } from "@/lib/tokens";
 import { smsApprovalRequest, smsTMApprovalRequest } from "@/lib/sms";
 import { sendEmail, emailApprovalRequest } from "@/lib/resend";
 
@@ -74,8 +74,20 @@ export async function POST(request: NextRequest) {
     ?.map((p) => p.annotated_url || p.original_url)
     .filter(Boolean) as string[] | undefined;
 
-  // Generate approval token
-  const { token, expiresAt } = generateApprovalToken();
+  // Reuse the existing approval token on a resend as long as it's still live —
+  // the client may already have that link in an email or text thread, and
+  // regenerating it on every resend silently breaks any copy they haven't
+  // clicked yet. Only mint a fresh token for a genuinely new send (draft/
+  // declined) or once the previous one has actually expired.
+  const existingTokenStillLive =
+    co.status === "sent" &&
+    !!co.approval_token &&
+    !!co.approval_token_expires_at &&
+    new Date(co.approval_token_expires_at) > new Date();
+
+  const { token, expiresAt } = existingTokenStillLive
+    ? { token: co.approval_token as string, expiresAt: freshExpiry() }
+    : generateApprovalToken();
   const approvalUrl = `${process.env.NEXT_PUBLIC_APP_URL}/approve/${token}`;
 
   // Use admin client for writes that bypass RLS (approval_events, etc.)
