@@ -22,6 +22,11 @@ export const metadata: Metadata = {
   },
   description:
     "Create, send, and document client-approved change orders in under 60 seconds.",
+  formatDetection: {
+    telephone: false,
+    email: false,
+    address: false,
+  },
 };
 
 export const viewport: Viewport = {

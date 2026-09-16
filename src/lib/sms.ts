@@ -24,10 +24,13 @@ export function smsTMApprovalRequest(params: {
   projectName: string;
   coTitle: string;
   amount: string;
-  rate: string;
+  rate?: string | null;
   approvalLink: string;
 }): string {
-  return `${params.companyName} sent you Change Order #${params.coNumber} for ${params.projectName}: ${params.coTitle} — Est. $${params.amount} at $${params.rate}/hr + materials. Final invoice reflects actual hours. Review & approve: ${params.approvalLink}`;
+  const pricing = params.rate
+    ? `Est. $${params.amount} at $${params.rate}/hr + materials`
+    : `Est. $${params.amount}, time & materials`;
+  return `${params.companyName} sent you Change Order #${params.coNumber} for ${params.projectName}: ${params.coTitle} — ${pricing}. Final invoice reflects actual hours. Review & approve: ${params.approvalLink}`;
 }
 
 export function smsReminder(params: {

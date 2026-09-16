@@ -60,9 +60,15 @@ export async function POST(request: NextRequest) {
   // Get company info
   const { data: company } = await supabase
     .from("companies")
-    .select("name, logo_url, phone")
+    .select("name, logo_url, phone, settings")
     .eq("id", co.company_id)
     .single();
+
+  const laborRate = Number(company?.settings?.default_labor_rate);
+  const hourlyRate =
+    Number.isFinite(laborRate) && laborRate > 0
+      ? laborRate.toLocaleString(undefined, { minimumFractionDigits: 2 })
+      : null;
 
   // Fetch photos for email
   const { data: photos } = await supabase
@@ -125,7 +131,7 @@ export async function POST(request: NextRequest) {
             projectName: project.name,
             coTitle: co.title,
             amount,
-            rate: "varies",
+            rate: hourlyRate,
             approvalLink: approvalUrl,
           })
         : smsApprovalRequest({
