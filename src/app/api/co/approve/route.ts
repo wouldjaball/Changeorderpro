@@ -6,10 +6,9 @@ import { headers } from "next/headers";
 
 export async function POST(request: NextRequest) {
   const body = await request.json();
-  const { token, changeOrderId, companyId, action, clientNameTyped } = body as {
+  const { token, changeOrderId, action, clientNameTyped } = body as {
     token: string;
     changeOrderId: string;
-    companyId: string;
     action: "approved" | "declined";
     clientNameTyped: string | null;
   };
@@ -37,6 +36,8 @@ export async function POST(request: NextRequest) {
   if (!validation.valid) {
     return NextResponse.json({ error: validation.reason }, { status: 400 });
   }
+
+  const companyId = co.company_id as string;
 
   // Collect client metadata
   const headersList = await headers();
