@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
 import { CheckCircle, XCircle, Loader2 } from "lucide-react";
+import { BackLink } from "@/components/approval/back-link";
 
 interface ApprovalFormProps {
   changeOrderId: string;
@@ -14,6 +15,7 @@ interface ApprovalFormProps {
   token: string;
   coNumber: string;
   amount: number;
+  backHref?: string | null;
 }
 
 export function ApprovalForm({
@@ -22,6 +24,7 @@ export function ApprovalForm({
   token,
   coNumber,
   amount,
+  backHref = null,
 }: ApprovalFormProps) {
   const [clientName, setClientName] = useState("");
   const [loading, setLoading] = useState(false);
@@ -84,6 +87,9 @@ export function ApprovalForm({
               </p>
             </>
           )}
+          <div className="mt-6">
+            <BackLink href={backHref} />
+          </div>
         </CardContent>
       </Card>
     );

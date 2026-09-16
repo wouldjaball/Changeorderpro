@@ -1,10 +1,12 @@
 import { createAdminClient } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
 import { isTokenValid } from "@/lib/tokens";
 import { ApprovalForm } from "@/components/approval/approval-form";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { FileText, AlertTriangle, CheckCircle, XCircle } from "lucide-react";
+import { BackLink } from "@/components/approval/back-link";
+import { AlertTriangle, CheckCircle, XCircle } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import type { Metadata } from "next";
@@ -23,12 +25,14 @@ export default async function ApprovalPage({
   const { token } = await params;
   const supabase = createAdminClient();
 
-  // Find CO by approval token
-  const { data: co, error } = await supabase
-    .from("change_orders")
-    .select("*, project:projects(name, client_name)")
-    .eq("approval_token", token)
-    .single();
+  const [{ data: co, error }, viewer] = await Promise.all([
+    supabase
+      .from("change_orders")
+      .select("*, project:projects(name, client_name)")
+      .eq("approval_token", token)
+      .single(),
+    getViewer(),
+  ]);
 
   if (error || !co) {
     return (
@@ -36,9 +40,16 @@ export default async function ApprovalPage({
         icon={<AlertTriangle className="h-12 w-12 text-destructive" />}
         title="Invalid Link"
         message="This approval link is not valid. It may have been used already or the change order may no longer exist."
+        backHref={viewer ? "/dashboard" : null}
       />
     );
   }
+
+  const backHref = viewer
+    ? viewer.companyId === co.company_id
+      ? `/change-orders/${co.id}`
+      : "/dashboard"
+    : null;
 
   // Validate token
   const validation = isTokenValid(
@@ -68,6 +79,7 @@ export default async function ApprovalPage({
             : "Link Expired"
         }
         message={validation.reason || "This link is no longer valid."}
+        backHref={backHref}
       />
     );
   }
@@ -237,6 +249,7 @@ export default async function ApprovalPage({
           token={token}
           coNumber={co.co_number}
           amount={amount}
+          backHref={backHref}
         />
 
         <div className="text-sm text-center text-muted-foreground space-y-1">
@@ -256,26 +269,57 @@ export default async function ApprovalPage({
   );
 }
 
+async function getViewer(): Promise<{ companyId: string | null } | null> {
+  try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return null;
+
+    const { data: profile } = await supabase
+      .from("users")
+      .select("company_id")
+      .eq("id", user.id)
+      .single();
+
+    return { companyId: profile?.company_id ?? null };
+  } catch {
+    return null;
+  }
+}
+
 function ErrorPage({
   icon,
   title,
   message,
+  backHref,
 }: {
   icon: React.ReactNode;
   title: string;
   message: string;
+  backHref: string | null;
 }) {
   return (
     <div className="flex min-h-svh items-center justify-center p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <div className="mx-auto mb-2">{icon}</div>
-          <CardTitle>{title}</CardTitle>
-        </CardHeader>
-        <CardContent className="text-center text-muted-foreground">
-          <p>{message}</p>
-        </CardContent>
-      </Card>
+      <div className="w-full max-w-md space-y-4">
+        <Card>
+          <CardHeader className="text-center">
+            <div className="mx-auto mb-2">{icon}</div>
+            <CardTitle>{title}</CardTitle>
+          </CardHeader>
+          <CardContent className="text-center text-muted-foreground space-y-4">
+            <p>{message}</p>
+            <BackLink href={backHref} />
+          </CardContent>
+        </Card>
+        <div className="text-sm text-center text-muted-foreground">
+          <Link href="/" className="hover:underline">
+            Powered by ChangeOrder Pro
+          </Link>
+        </div>
+      </div>
     </div>
   );
 }
+
