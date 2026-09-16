@@ -107,13 +107,20 @@ export default async function ProjectDetailPage({
           {project.client_phone && (
             <p className="flex items-center gap-2">
               <Phone className="h-3 w-3 text-muted-foreground" />
-              {project.client_phone}
+              <a href={`tel:${project.client_phone}`} className="hover:underline">
+                {project.client_phone}
+              </a>
             </p>
           )}
           {project.client_phone_secondary && (
             <p className="flex items-center gap-2">
               <Phone className="h-3 w-3 text-muted-foreground" />
-              {project.client_phone_secondary}
+              <a
+                href={`tel:${project.client_phone_secondary}`}
+                className="hover:underline"
+              >
+                {project.client_phone_secondary}
+              </a>
               <span className="text-xs text-muted-foreground">(secondary)</span>
             </p>
           )}
