@@ -356,7 +356,17 @@ export default async function ChangeOrderDetailPage({
 
       {/* Actions */}
       <div className="flex gap-2 pb-4">
-        {(co.status === "draft" || co.status === "declined") && (
+        {co.status === "sent" && (
+          <Button
+            variant="outline"
+            className="h-12"
+            render={<Link href={editHref} />}
+          >
+            <Pencil className="mr-2 h-4 w-4" />
+            Edit
+          </Button>
+        )}
+        {canEdit && (
           <SendDialog
             changeOrderId={co.id}
             coNumber={co.co_number}
@@ -365,38 +375,12 @@ export default async function ChangeOrderDetailPage({
             clientEmail={project?.client_email || undefined}
             clientEmails={(project?.client_emails as string[]) || []}
             clientPhone={project?.client_phone || undefined}
-          >
-            <Button className="flex-1 h-12">
-              <Send className="mr-2 h-4 w-4" />
-              Send to Client
-            </Button>
-          </SendDialog>
-        )}
-        {co.status === "sent" && (
-          <>
-            <Button
-              variant="outline"
-              className="h-12"
-              render={<Link href={editHref} />}
-            >
-              <Pencil className="mr-2 h-4 w-4" />
-              Edit
-            </Button>
-            <SendDialog
-              changeOrderId={co.id}
-              coNumber={co.co_number}
-              coTitle={co.title}
-              clientName={project?.client_name || undefined}
-              clientEmail={project?.client_email || undefined}
-              clientEmails={(project?.client_emails as string[]) || []}
-              clientPhone={project?.client_phone || undefined}
-            >
-              <Button variant="outline" className="flex-1 h-12">
-                <Send className="mr-2 h-4 w-4" />
-                Resend for Approval
-              </Button>
-            </SendDialog>
-          </>
+            triggerLabel={
+              co.status === "sent" ? "Resend for Approval" : "Send to Client"
+            }
+            triggerVariant={co.status === "sent" ? "outline" : "default"}
+            triggerClassName="flex-1 h-12"
+          />
         )}
         {co.status === "approved" && (
           <Badge className="flex-1 h-12 justify-center text-base bg-green-100 text-green-800">
