@@ -30,6 +30,7 @@ export function COFilters({ projects }: COFiltersProps) {
   const currentStatus = searchParams.get("status") || "all";
   const currentProject = searchParams.get("project") || "all";
   const currentSearch = searchParams.get("q") || "";
+  const currentPeriod = searchParams.get("period") || "";
 
   const updateParam = useCallback(
     (key: string, value: string) => {
@@ -38,6 +39,9 @@ export function COFilters({ projects }: COFiltersProps) {
         params.set(key, value);
       } else {
         params.delete(key);
+      }
+      if (key === "status" && value !== "approved") {
+        params.delete("period");
       }
       router.push(`/dashboard?${params.toString()}`);
     },
@@ -48,7 +52,11 @@ export function COFilters({ projects }: COFiltersProps) {
     router.push("/dashboard");
   }, [router]);
 
-  const hasFilters = currentStatus !== "all" || currentProject !== "all" || currentSearch !== "";
+  const hasFilters =
+    currentStatus !== "all" ||
+    currentProject !== "all" ||
+    currentSearch !== "" ||
+    currentPeriod !== "";
 
   return (
     <div className="flex flex-col sm:flex-row gap-2">
@@ -90,6 +98,17 @@ export function COFilters({ projects }: COFiltersProps) {
             </option>
           ))}
         </select>
+      )}
+      {currentPeriod === "month" && (
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => updateParam("period", "")}
+          className="h-9"
+        >
+          This month
+          <X className="ml-1 h-3 w-3" />
+        </Button>
       )}
       {hasFilters && (
         <Button variant="ghost" size="sm" onClick={clearFilters} className="h-9">

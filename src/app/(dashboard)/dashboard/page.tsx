@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import type { Metadata } from "next";
+import { cn } from "@/lib/utils";
 import { COFilters } from "@/components/co/co-filters";
 
 export const metadata: Metadata = {
@@ -23,9 +24,19 @@ export const metadata: Metadata = {
 export default async function DashboardPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string; project?: string; q?: string }>;
+  searchParams: Promise<{
+    status?: string;
+    project?: string;
+    q?: string;
+    period?: string;
+  }>;
 }) {
   const filters = await searchParams;
+  const monthStart = new Date(
+    new Date().getFullYear(),
+    new Date().getMonth(),
+    1
+  ).toISOString();
   const supabase = await createClient();
   const {
     data: { user },
@@ -57,14 +68,7 @@ export default async function DashboardPage({
     .select("*", { count: "exact", head: true })
     .eq("company_id", companyId!)
     .eq("status", "approved")
-    .gte(
-      "approved_at",
-      new Date(
-        new Date().getFullYear(),
-        new Date().getMonth(),
-        1
-      ).toISOString()
-    );
+    .gte("approved_at", monthStart);
 
   const { data: approvedCOs } = await supabase
     .from("change_orders")
@@ -107,6 +111,9 @@ export default async function DashboardPage({
   if (filters.status && filters.status !== "all") {
     coQuery = coQuery.eq("status", filters.status);
   }
+  if (filters.period === "month") {
+    coQuery = coQuery.gte("approved_at", monthStart);
+  }
   if (filters.project && filters.project !== "all") {
     coQuery = coQuery.eq("project_id", filters.project);
   }
@@ -118,24 +125,48 @@ export default async function DashboardPage({
 
   const { data: recentCOs } = await coQuery;
 
+  const hasFilters = Boolean(
+    filters.status || filters.project || filters.q || filters.period
+  );
+  const activeStatus = filters.status || "all";
+  const activePeriod = filters.period || "";
+
   const stats = [
-    { label: "Total COs", value: totalCOs || 0, icon: FileText },
-    { label: "Awaiting Approval", value: awaitingApproval || 0, icon: Clock },
+    {
+      label: "Total COs",
+      value: totalCOs || 0,
+      icon: FileText,
+      href: "/dashboard#change-orders",
+      active: hasFilters === false,
+    },
+    {
+      label: "Awaiting Approval",
+      value: awaitingApproval || 0,
+      icon: Clock,
+      href: "/dashboard?status=sent#change-orders",
+      active: activeStatus === "sent" && !activePeriod,
+    },
     {
       label: "Approved This Month",
       value: approvedThisMonth || 0,
       icon: CheckCircle,
+      href: "/dashboard?status=approved&period=month#change-orders",
+      active: activeStatus === "approved" && activePeriod === "month",
     },
     {
       label: "Total Approved",
       value: `$${totalApprovedValue.toLocaleString()}`,
       icon: DollarSign,
+      href: "/dashboard?status=approved#change-orders",
+      active: activeStatus === "approved" && !activePeriod,
     },
     {
       label: "Total Paid",
       value: `$${totalPaidValue.toLocaleString()}`,
       sublabel: `${paidCount || 0} change order${paidCount === 1 ? "" : "s"}`,
       icon: Banknote,
+      href: "/dashboard?status=paid#change-orders",
+      active: activeStatus === "paid" && !activePeriod,
     },
   ];
 
@@ -168,20 +199,32 @@ export default async function DashboardPage({
         {stats.map((stat) => {
           const Icon = stat.icon;
           return (
-            <Card key={stat.label}>
-              <CardContent className="p-4">
-                <div className="flex items-center gap-2 text-muted-foreground mb-1">
-                  <Icon className="h-4 w-4" />
-                  <span className="text-sm">{stat.label}</span>
-                </div>
-                <p className="text-2xl font-bold">{stat.value}</p>
-                {"sublabel" in stat && stat.sublabel && (
-                  <p className="text-sm text-muted-foreground mt-0.5">
-                    {stat.sublabel}
-                  </p>
+            <Link
+              key={stat.label}
+              href={stat.href}
+              aria-label={`Show ${stat.label.toLowerCase()} change orders`}
+              className="block rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <Card
+                className={cn(
+                  "h-full transition-colors hover:bg-accent/60",
+                  stat.active && "ring-2 ring-primary"
                 )}
-              </CardContent>
-            </Card>
+              >
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-2 text-muted-foreground mb-1">
+                    <Icon className="h-4 w-4" />
+                    <span className="text-sm">{stat.label}</span>
+                  </div>
+                  <p className="text-2xl font-bold">{stat.value}</p>
+                  {"sublabel" in stat && stat.sublabel && (
+                    <p className="text-sm text-muted-foreground mt-0.5">
+                      {stat.sublabel}
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
+            </Link>
           );
         })}
       </div>
@@ -190,19 +233,17 @@ export default async function DashboardPage({
       <COFilters projects={projects || []} />
 
       {/* COs list */}
-      <Card>
+      <Card id="change-orders" className="scroll-mt-20">
         <CardHeader>
           <CardTitle className="text-lg">
-            {filters.status || filters.project || filters.q
-              ? "Filtered Change Orders"
-              : "Recent Change Orders"}
+            {hasFilters ? "Filtered Change Orders" : "Recent Change Orders"}
           </CardTitle>
         </CardHeader>
         <CardContent>
           {!recentCOs || recentCOs.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               <FileText className="h-12 w-12 mx-auto mb-3 opacity-50" />
-              {filters.status || filters.project || filters.q ? (
+              {hasFilters ? (
                 <>
                   <p className="font-medium">No matching change orders</p>
                   <p className="text-base mt-1">
