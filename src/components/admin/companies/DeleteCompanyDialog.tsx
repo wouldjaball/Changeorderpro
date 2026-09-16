@@ -22,14 +22,14 @@ interface DeleteCompanyDialogProps {
   companyId: string;
   companyName: string;
   redirectTo?: string;
-  trigger?: React.ReactNode;
+  triggerLabel?: string;
 }
 
 export function DeleteCompanyDialog({
   companyId,
   companyName,
   redirectTo,
-  trigger,
+  triggerLabel,
 }: DeleteCompanyDialogProps) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -64,16 +64,21 @@ export function DeleteCompanyDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogTrigger>
-        {trigger ?? (
-          <Button
-            variant="ghost"
-            size="sm"
-            className="text-destructive hover:text-destructive"
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
-        )}
+      <DialogTrigger
+        render={
+          triggerLabel ? (
+            <Button variant="destructive" size="sm" className="gap-2" />
+          ) : (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-destructive hover:text-destructive"
+            />
+          )
+        }
+      >
+        <Trash2 className="h-4 w-4" />
+        {triggerLabel}
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>

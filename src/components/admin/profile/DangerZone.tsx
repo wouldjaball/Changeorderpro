@@ -1,6 +1,4 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Trash2 } from "lucide-react";
 import { DeleteCompanyDialog } from "@/components/admin/companies/DeleteCompanyDialog";
 
 interface DangerZoneProps {
@@ -27,12 +25,7 @@ export function DangerZone({ companyId, companyName }: DangerZoneProps) {
             companyId={companyId}
             companyName={companyName}
             redirectTo="/admin/companies"
-            trigger={
-              <Button variant="destructive" size="sm" className="gap-2">
-                <Trash2 className="h-4 w-4" />
-                Delete Company
-              </Button>
-            }
+            triggerLabel="Delete Company"
           />
         </div>
       </CardContent>
