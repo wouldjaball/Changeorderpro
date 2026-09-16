@@ -264,7 +264,9 @@ export function SendDialog({
                 {clientPhone && (
                   <p>
                     <span className="text-muted-foreground">Phone: </span>
-                    {clientPhone}
+                    <a href={`tel:${clientPhone}`} className="hover:underline">
+                      {clientPhone}
+                    </a>
                   </p>
                 )}
                 {allEmails.length > 0 && (
