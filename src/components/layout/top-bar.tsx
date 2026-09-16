@@ -76,17 +76,17 @@ export function TopBar({ userName, companyName, isAdmin }: TopBarProps) {
           </Button>
 
           <DropdownMenu>
-            <DropdownMenuTrigger>
-              <Button
-                variant="ghost"
-                className="relative h-9 w-9 rounded-full"
-              >
-                <Avatar className="h-8 w-8">
-                  <AvatarFallback className="text-sm">
-                    {initials}
-                  </AvatarFallback>
-                </Avatar>
-              </Button>
+            <DropdownMenuTrigger
+              render={
+                <Button
+                  variant="ghost"
+                  className="relative h-9 w-9 rounded-full"
+                />
+              }
+            >
+              <Avatar className="h-8 w-8">
+                <AvatarFallback className="text-sm">{initials}</AvatarFallback>
+              </Avatar>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48">
               <div className="flex flex-col space-y-1 p-2">
