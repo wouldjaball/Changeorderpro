@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
+import { Button, type buttonVariants } from "@/components/ui/button";
+import type { VariantProps } from "class-variance-authority";
 import {
   Dialog,
   DialogContent,
@@ -13,7 +14,7 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Loader2, MessageSquare, Mail, Link2, Zap } from "lucide-react";
+import { Loader2, MessageSquare, Mail, Link2, Zap, Send } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { ApprovalMethod } from "@/types";
 
@@ -25,7 +26,9 @@ interface SendDialogProps {
   clientEmail?: string;
   clientEmails?: string[];
   clientPhone?: string;
-  children: React.ReactNode;
+  triggerLabel: string;
+  triggerVariant?: VariantProps<typeof buttonVariants>["variant"];
+  triggerClassName?: string;
 }
 
 const METHODS: {
@@ -60,6 +63,16 @@ const METHODS: {
   },
 ];
 
+async function copyToClipboard(text: string): Promise<boolean> {
+  try {
+    if (!navigator.clipboard) return false;
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export function SendDialog({
   changeOrderId,
   coNumber,
@@ -68,7 +81,9 @@ export function SendDialog({
   clientEmail,
   clientEmails = [],
   clientPhone,
-  children,
+  triggerLabel,
+  triggerVariant = "default",
+  triggerClassName,
 }: SendDialogProps) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -78,7 +93,9 @@ export function SendDialog({
   const [pendingSms, setPendingSms] = useState<{
     href: string;
     emailAlsoSent: boolean;
+    copied: boolean;
   } | null>(null);
+  const [needsRefresh, setNeedsRefresh] = useState(false);
 
   const canSMS = !!clientPhone;
   const allEmails: string[] = [];
@@ -127,21 +144,33 @@ export function SendDialog({
       // surface a real button instead of auto-navigating, giving the user a fresh
       // gesture to trigger the handoff.
       if ((method === "sms" || method === "both") && data.smsBody && data.clientPhone) {
-        navigator.clipboard?.writeText(data.smsBody);
+        const copied = await copyToClipboard(data.smsBody);
         const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
         const separator = isIOS ? "&" : "?";
         const smsHref = `sms:${data.clientPhone}${separator}body=${encodeURIComponent(data.smsBody)}`;
         toast.success(
           method === "both"
-            ? "Email sent. Message copied — tap below to open your texting app."
-            : "Message copied — tap below to open your texting app."
+            ? copied
+              ? "Email sent. Message copied — tap below to open your texting app."
+              : "Email sent. Tap below to open your texting app."
+            : copied
+              ? "Message copied — tap below to open your texting app."
+              : "Tap below to open your texting app."
         );
-        setPendingSms({ href: smsHref, emailAlsoSent: method === "both" });
-        router.refresh();
+        setPendingSms({
+          href: smsHref,
+          emailAlsoSent: method === "both",
+          copied,
+        });
+        setNeedsRefresh(true);
         return;
       } else if (method === "link" && data.approvalUrl) {
-        navigator.clipboard?.writeText(data.approvalUrl);
-        toast.success("Approval link copied to clipboard");
+        const copied = await copyToClipboard(data.approvalUrl);
+        toast.success(
+          copied
+            ? "Approval link copied to clipboard"
+            : "Approval link generated"
+        );
       } else {
         toast.success(`Change order sent to ${clientName || "client"}!`);
       }
@@ -160,13 +189,22 @@ export function SendDialog({
     if (!next) {
       setPendingSms(null);
       setSendingMethod(null);
+      if (needsRefresh) {
+        setNeedsRefresh(false);
+        router.refresh();
+      }
     }
   }
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogTrigger>
-        {children}
+      <DialogTrigger
+        render={
+          <Button variant={triggerVariant} className={triggerClassName} />
+        }
+      >
+        <Send className="mr-2 h-4 w-4" />
+        {triggerLabel}
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
@@ -187,8 +225,9 @@ export function SendDialog({
                   </p>
                 )}
                 <p>
-                  Message copied to your clipboard. Tap below to open your
-                  texting app with it pre-filled.
+                  {pendingSms.copied
+                    ? "Message copied to your clipboard. Tap below to open your texting app with it pre-filled."
+                    : "Tap below to open your texting app with the message pre-filled."}
                 </p>
               </div>
             </div>
@@ -202,11 +241,9 @@ export function SendDialog({
               </Button>
               <Button
                 className="flex-1"
+                nativeButton={false}
                 render={<a href={pendingSms.href} />}
-                onClick={() => {
-                  setOpen(false);
-                  router.refresh();
-                }}
+                onClick={() => handleOpenChange(false)}
               >
                 <MessageSquare className="mr-2 h-4 w-4" />
                 Open Messages
