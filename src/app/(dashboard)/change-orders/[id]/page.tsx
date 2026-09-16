@@ -369,6 +369,7 @@ export default async function ChangeOrderDetailPage({
         {canEdit && (
           <SendDialog
             changeOrderId={co.id}
+            projectId={project?.id}
             coNumber={co.co_number}
             coTitle={co.title}
             clientName={project?.client_name || undefined}

@@ -13,13 +13,26 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
-import { Loader2, MessageSquare, Mail, Link2, Zap, Send } from "lucide-react";
+import {
+  Loader2,
+  MessageSquare,
+  Mail,
+  Link2,
+  Zap,
+  Send,
+  Phone,
+  Check,
+  X,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
+import { createClient } from "@/lib/supabase/client";
 import type { ApprovalMethod } from "@/types";
 
 interface SendDialogProps {
   changeOrderId: string;
+  projectId?: string;
   coNumber: string;
   coTitle: string;
   clientName?: string;
@@ -63,6 +76,12 @@ const METHODS: {
   },
 ];
 
+function normalizePhoneForSms(phone: string): string {
+  const trimmed = phone.trim();
+  const digits = trimmed.replace(/[^\d]/g, "");
+  return trimmed.startsWith("+") ? `+${digits}` : digits;
+}
+
 async function copyToClipboard(text: string): Promise<boolean> {
   try {
     if (!navigator.clipboard) return false;
@@ -75,6 +94,7 @@ async function copyToClipboard(text: string): Promise<boolean> {
 
 export function SendDialog({
   changeOrderId,
+  projectId,
   coNumber,
   coTitle,
   clientName,
@@ -96,14 +116,50 @@ export function SendDialog({
     copied: boolean;
   } | null>(null);
   const [needsRefresh, setNeedsRefresh] = useState(false);
+  const [phone, setPhone] = useState(clientPhone || "");
+  const [editingPhone, setEditingPhone] = useState(false);
+  const [phoneDraft, setPhoneDraft] = useState("");
+  const [savingPhone, setSavingPhone] = useState(false);
 
-  const canSMS = !!clientPhone;
+  const canSMS = !!phone;
+  const canEditPhone = !!projectId;
   const allEmails: string[] = [];
   if (clientEmail) allEmails.push(clientEmail);
   for (const e of clientEmails) {
     if (e && !allEmails.includes(e)) allEmails.push(e);
   }
   const canEmail = allEmails.length > 0;
+
+  async function handleSavePhone(e: React.FormEvent) {
+    e.preventDefault();
+    if (!projectId) return;
+    const trimmed = phoneDraft.trim();
+    const digits = trimmed.replace(/[^\d]/g, "");
+    if (digits.length < 10) {
+      toast.error("Enter a valid cell phone number");
+      return;
+    }
+
+    setSavingPhone(true);
+    const supabase = createClient();
+    const { error } = await supabase
+      .from("projects")
+      .update({ client_phone: trimmed })
+      .eq("id", projectId);
+
+    if (error) {
+      toast.error("Failed to save phone number");
+      setSavingPhone(false);
+      return;
+    }
+
+    setPhone(trimmed);
+    setEditingPhone(false);
+    setPhoneDraft("");
+    setSavingPhone(false);
+    setNeedsRefresh(true);
+    toast.success("Cell phone saved to project");
+  }
 
   async function handleSend(method: ApprovalMethod) {
     // Validate we can send via this method
@@ -147,7 +203,7 @@ export function SendDialog({
         const copied = await copyToClipboard(data.smsBody);
         const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
         const separator = isIOS ? "&" : "?";
-        const smsHref = `sms:${data.clientPhone}${separator}body=${encodeURIComponent(data.smsBody)}`;
+        const smsHref = `sms:${normalizePhoneForSms(data.clientPhone)}${separator}body=${encodeURIComponent(data.smsBody)}`;
         toast.success(
           method === "both"
             ? copied
@@ -261,14 +317,77 @@ export function SendDialog({
                     <span className="font-medium">{clientName}</span>
                   </p>
                 )}
-                {clientPhone && (
-                  <p>
+                {editingPhone ? (
+                  <form
+                    onSubmit={handleSavePhone}
+                    className="flex items-center gap-2"
+                  >
+                    <Phone className="h-4 w-4 shrink-0 text-muted-foreground" />
+                    <Input
+                      type="tel"
+                      inputMode="tel"
+                      autoComplete="tel"
+                      placeholder="Client cell phone"
+                      value={phoneDraft}
+                      onChange={(e) => setPhoneDraft(e.target.value)}
+                      className="h-9 text-base"
+                      autoFocus
+                      required
+                    />
+                    <Button
+                      type="submit"
+                      size="sm"
+                      className="h-9 px-3"
+                      disabled={savingPhone}
+                    >
+                      {savingPhone ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Check className="h-4 w-4" />
+                      )}
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      className="h-9 px-2"
+                      onClick={() => {
+                        setEditingPhone(false);
+                        setPhoneDraft("");
+                      }}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </form>
+                ) : phone ? (
+                  <p className="flex items-center gap-2">
                     <span className="text-muted-foreground">Phone: </span>
-                    <a href={`tel:${clientPhone}`} className="hover:underline">
-                      {clientPhone}
+                    <a href={`tel:${phone}`} className="hover:underline">
+                      {phone}
                     </a>
+                    {canEditPhone && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPhoneDraft(phone);
+                          setEditingPhone(true);
+                        }}
+                        className="ml-auto text-sm text-muted-foreground hover:text-foreground"
+                      >
+                        Change
+                      </button>
+                    )}
                   </p>
-                )}
+                ) : canEditPhone ? (
+                  <button
+                    type="button"
+                    onClick={() => setEditingPhone(true)}
+                    className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    <Phone className="h-4 w-4" />
+                    Add client cell phone for SMS
+                  </button>
+                ) : null}
                 {allEmails.length > 0 && (
                   <div>
                     <span className="text-muted-foreground">Email: </span>
@@ -280,9 +399,10 @@ export function SendDialog({
                     ))}
                   </div>
                 )}
-                {!clientPhone && !clientEmail && (
+                {!phone && !canEmail && (
                   <p className="text-destructive">
-                    No contact info — add client email or phone to the project first
+                    No contact info — add a client cell phone above or an email
+                    on the project
                   </p>
                 )}
               </div>
