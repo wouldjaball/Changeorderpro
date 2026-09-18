@@ -122,6 +122,14 @@ export function emailApprovalRequest(params: {
   return { subject, html };
 }
 
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
 export function emailApprovalConfirmation(params: {
   companyName: string;
   companyLogo?: string;
@@ -129,6 +137,7 @@ export function emailApprovalConfirmation(params: {
   coTitle: string;
   amount: string;
   action: "approved" | "declined";
+  clientNotes?: string | null;
 }): { subject: string; html: string } {
   const subject =
     params.action === "approved"
@@ -137,6 +146,14 @@ export function emailApprovalConfirmation(params: {
 
   const statusColor = params.action === "approved" ? "#16a34a" : "#dc2626";
   const statusText = params.action === "approved" ? "Approved" : "Declined";
+  const clientNotes = params.clientNotes?.trim() || null;
+  const notesBlock = clientNotes
+    ? `
+      <div style="background: #f3f4f6; border-radius: 8px; padding: 16px; margin: 16px 0;">
+        <p style="margin: 0 0 6px; font-size: 13px; font-weight: 700; color: #374151;">Note from client</p>
+        <p style="margin: 0; font-size: 14px; color: #374151; white-space: pre-wrap;">${escapeHtml(clientNotes)}</p>
+      </div>`
+    : "";
 
   const html = `
 <!DOCTYPE html>
@@ -169,7 +186,7 @@ export function emailApprovalConfirmation(params: {
           </tr>
         </table>
       </div>
-
+${notesBlock}
       <p style="font-size: 14px; color: #666; text-align: center;">
         ${params.action === "approved" ? "This change order has been approved. Work may proceed as described." : "This change order has been declined. Your project manager will follow up."}
       </p>

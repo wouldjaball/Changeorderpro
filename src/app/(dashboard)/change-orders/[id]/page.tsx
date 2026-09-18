@@ -23,6 +23,7 @@ import Image from "next/image";
 import { SendDialog } from "@/components/co/send-dialog";
 import { PdfDownloadButton } from "@/components/co/pdf-download-button";
 import { COStatusActions } from "@/components/co/co-status-actions";
+import { getClientNotes, latestClientResponse } from "@/lib/approval-notes";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -75,7 +76,8 @@ export default async function ChangeOrderDetailPage({
     .from("approval_events")
     .select("*")
     .eq("change_order_id", id)
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: false })
+    .limit(100);
 
   const { data: editHistory } = await supabase
     .from("audit_log")
@@ -87,6 +89,10 @@ export default async function ChangeOrderDetailPage({
     .limit(20);
 
   const project = co.project && !Array.isArray(co.project) ? co.project : null;
+  const clientResponse = latestClientResponse(approvalEvents || []);
+  const declineResponse =
+    clientResponse?.action === "declined" ? clientResponse : null;
+  const declinedAt = declineResponse?.created_at || co.declined_at || null;
   const status = statusConfig[co.status] || statusConfig.draft;
   const StatusIcon = status.icon;
 
@@ -135,6 +141,32 @@ export default async function ChangeOrderDetailPage({
           </Button>
         )}
       </div>
+
+      {/* Client decline */}
+      {co.status === "declined" && (
+        <Card className="border-red-200 bg-red-50 dark:bg-red-950/30 dark:border-red-900">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base flex items-center gap-2 text-red-800 dark:text-red-300">
+              <XCircle className="h-4 w-4" />
+              Client declined
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-1">
+            {declineResponse?.notes ? (
+              <p className="text-base whitespace-pre-wrap">
+                &ldquo;{declineResponse.notes}&rdquo;
+              </p>
+            ) : (
+              <p className="text-base text-muted-foreground">No note left</p>
+            )}
+            {declinedAt && (
+              <p className="text-sm text-muted-foreground">
+                {new Date(declinedAt).toLocaleString()}
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Project info */}
       {project && (
@@ -331,6 +363,7 @@ export default async function ChangeOrderDetailPage({
             <div className="space-y-3">
               {approvalEvents.map((event) => {
                 const EventIcon = eventIcons[event.action] || Clock;
+                const eventNotes = getClientNotes(event);
                 return (
                   <div key={event.id} className="flex items-start gap-3">
                     <EventIcon className="h-4 w-4 mt-0.5 text-muted-foreground" />
@@ -343,6 +376,11 @@ export default async function ChangeOrderDetailPage({
                       {event.client_name_typed && (
                         <p className="text-sm">
                           Signed: {event.client_name_typed}
+                        </p>
+                      )}
+                      {eventNotes && (
+                        <p className="text-sm italic text-muted-foreground whitespace-pre-wrap mt-1">
+                          &ldquo;{eventNotes}&rdquo;
                         </p>
                       )}
                     </div>

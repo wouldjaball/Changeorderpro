@@ -276,7 +276,9 @@ export async function getChangeOrderDetail(
       .limit(50),
     db
       .from("approval_events")
-      .select("id, action, method, client_name_typed, ip_address, created_at")
+      .select(
+        "id, action, method, client_name_typed, ip_address, metadata, created_at"
+      )
       .eq("change_order_id", coId)
       .order("created_at", { ascending: false })
       .limit(100),

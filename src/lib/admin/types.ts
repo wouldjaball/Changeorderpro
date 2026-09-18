@@ -148,6 +148,7 @@ export interface ChangeOrderDetail {
     method: string | null;
     client_name_typed: string | null;
     ip_address: string | null;
+    metadata: Record<string, unknown> | null;
     created_at: string;
   }[];
 }
