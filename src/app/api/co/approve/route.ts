@@ -4,18 +4,26 @@ import { isTokenValid } from "@/lib/tokens";
 import { sendEmail, emailApprovalConfirmation } from "@/lib/resend";
 import { headers } from "next/headers";
 
+const MAX_NOTES_LENGTH = 1000;
+
 export async function POST(request: NextRequest) {
   const body = await request.json();
-  const { token, changeOrderId, action, clientNameTyped } = body as {
+  const { token, changeOrderId, action, clientNameTyped, notes } = body as {
     token: string;
     changeOrderId: string;
     action: "approved" | "declined";
     clientNameTyped: string | null;
+    notes?: unknown;
   };
 
   if (!token || !changeOrderId || !action) {
     return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
   }
+
+  const clientNotes =
+    typeof notes === "string" && notes.trim().length > 0
+      ? notes.trim().slice(0, MAX_NOTES_LENGTH)
+      : null;
 
   const supabase = createAdminClient();
 
@@ -57,6 +65,7 @@ export async function POST(request: NextRequest) {
     client_name_typed: clientNameTyped,
     metadata: {
       timestamp: new Date().toISOString(),
+      ...(clientNotes ? { client_notes: clientNotes } : {}),
     },
   });
 
@@ -102,6 +111,7 @@ export async function POST(request: NextRequest) {
       coTitle: co.title,
       amount,
       action,
+      clientNotes,
     });
 
     for (const recipient of confirmEmails) {
@@ -132,7 +142,8 @@ export async function POST(request: NextRequest) {
     .from("users")
     .select("email")
     .eq("company_id", companyId)
-    .in("role", ["admin", "pm"]);
+    .in("role", ["admin", "pm"])
+    .limit(100);
 
   if (teamMembers) {
     for (const member of teamMembers) {
@@ -144,6 +155,7 @@ export async function POST(request: NextRequest) {
           coTitle: co.title,
           amount,
           action,
+          clientNotes,
         });
 
         await sendEmail({

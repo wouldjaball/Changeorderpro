@@ -4,10 +4,13 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
 import { CheckCircle, XCircle, Loader2 } from "lucide-react";
 import { BackLink } from "@/components/approval/back-link";
+
+const MAX_NOTES_LENGTH = 1000;
 
 interface ApprovalFormProps {
   changeOrderId: string;
@@ -15,6 +18,7 @@ interface ApprovalFormProps {
   token: string;
   coNumber: string;
   amount: number;
+  companyName?: string;
   backHref?: string | null;
 }
 
@@ -24,14 +28,22 @@ export function ApprovalForm({
   token,
   coNumber,
   amount,
+  companyName,
   backHref = null,
 }: ApprovalFormProps) {
   const [clientName, setClientName] = useState("");
+  const [notes, setNotes] = useState("");
+  const [confirmingDecline, setConfirmingDecline] = useState(false);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<"approved" | "declined" | null>(null);
+  const [noteSent, setNoteSent] = useState(false);
+
+  const contractorName = companyName || "your contractor";
 
   async function handleAction(action: "approved" | "declined") {
     setLoading(true);
+
+    const trimmedNotes = notes.trim();
 
     try {
       const res = await fetch(`/api/co/approve`, {
@@ -43,6 +55,7 @@ export function ApprovalForm({
           companyId,
           action,
           clientNameTyped: clientName || null,
+          notes: trimmedNotes || null,
         }),
       });
 
@@ -54,6 +67,7 @@ export function ApprovalForm({
         return;
       }
 
+      setNoteSent(trimmedNotes.length > 0);
       setResult(action);
     } catch {
       toast.error("Network error — please try again");
@@ -87,8 +101,68 @@ export function ApprovalForm({
               </p>
             </>
           )}
+          {noteSent && (
+            <p className="text-muted-foreground mt-2">
+              Your note was sent to {contractorName}.
+            </p>
+          )}
           <div className="mt-6">
             <BackLink href={backHref} />
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (confirmingDecline) {
+    return (
+      <Card className="border-red-200">
+        <CardContent className="space-y-4 pt-6">
+          <div>
+            <h2 className="text-lg font-bold">
+              Decline Change Order {coNumber}?
+            </h2>
+            <p className="text-base text-muted-foreground mt-1">
+              This is logged and timestamped. {contractorName} will be notified.
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="declineNotes">
+              Tell {contractorName} why (optional)
+            </Label>
+            <Textarea
+              id="declineNotes"
+              autoFocus
+              placeholder="Questions, changes you'd like, or why you're declining"
+              value={notes}
+              maxLength={MAX_NOTES_LENGTH}
+              onChange={(e) => setNotes(e.target.value)}
+              className="min-h-28 text-base"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 pt-2">
+            <Button
+              variant="outline"
+              className="h-14 text-base"
+              onClick={() => setConfirmingDecline(false)}
+              disabled={loading}
+            >
+              Back
+            </Button>
+            <Button
+              className="h-14 text-base bg-red-600 hover:bg-red-700"
+              onClick={() => handleAction("declined")}
+              disabled={loading}
+            >
+              {loading ? (
+                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+              ) : (
+                <XCircle className="mr-2 h-5 w-5" />
+              )}
+              Confirm Decline
+            </Button>
           </div>
         </CardContent>
       </Card>
@@ -120,19 +194,28 @@ export function ApprovalForm({
           )}
         </div>
 
+        {/* Optional note to the contractor */}
+        <div className="space-y-2">
+          <Label htmlFor="clientNotes">Add a note (optional)</Label>
+          <Textarea
+            id="clientNotes"
+            placeholder="Questions, changes you'd like, or why you're declining"
+            value={notes}
+            maxLength={MAX_NOTES_LENGTH}
+            onChange={(e) => setNotes(e.target.value)}
+            className="min-h-24 text-base"
+          />
+        </div>
+
         {/* Action buttons */}
         <div className="grid grid-cols-2 gap-3 pt-2">
           <Button
             variant="outline"
             className="h-14 text-base border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
-            onClick={() => handleAction("declined")}
+            onClick={() => setConfirmingDecline(true)}
             disabled={loading}
           >
-            {loading ? (
-              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-            ) : (
-              <XCircle className="mr-2 h-5 w-5" />
-            )}
+            <XCircle className="mr-2 h-5 w-5" />
             Decline
           </Button>
           <Button

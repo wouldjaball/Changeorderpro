@@ -16,6 +16,10 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { cn } from "@/lib/utils";
 import { COFilters } from "@/components/co/co-filters";
+import {
+  latestClientResponse,
+  type ApprovalEventLike,
+} from "@/lib/approval-notes";
 
 export const metadata: Metadata = {
   title: "Dashboard",
@@ -103,7 +107,9 @@ export default async function DashboardPage({
   // Build filtered CO query
   let coQuery = supabase
     .from("change_orders")
-    .select("*, project:projects(name)")
+    .select(
+      "*, project:projects(name), approval_events(action, metadata, created_at)"
+    )
     .eq("company_id", companyId!)
     .order("updated_at", { ascending: false })
     .limit(50);
@@ -265,7 +271,14 @@ export default async function DashboardPage({
             </div>
           ) : (
             <div className="space-y-2">
-              {recentCOs.map((co) => (
+              {recentCOs.map((co) => {
+                const declineNotes =
+                  co.status === "declined"
+                    ? latestClientResponse(
+                        (co.approval_events as ApprovalEventLike[]) || []
+                      )?.notes || null
+                    : null;
+                return (
                 <Link
                   key={co.id}
                   href={`/change-orders/${co.id}`}
@@ -286,6 +299,11 @@ export default async function DashboardPage({
                     <p className="font-medium text-base truncate mt-0.5">
                       {co.title}
                     </p>
+                    {declineNotes && (
+                      <p className="text-sm text-muted-foreground truncate">
+                        Client: {declineNotes}
+                      </p>
+                    )}
                     <p className="text-sm text-muted-foreground">
                       {co.project && !Array.isArray(co.project)
                         ? co.project.name
@@ -301,7 +319,8 @@ export default async function DashboardPage({
                     </p>
                   </div>
                 </Link>
-              ))}
+                );
+              })}
             </div>
           )}
         </CardContent>

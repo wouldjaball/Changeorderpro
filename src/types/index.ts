@@ -133,6 +133,11 @@ export interface COPhoto {
   created_at: string;
 }
 
+export interface ApprovalEventMetadata {
+  timestamp?: string;
+  client_notes?: string;
+}
+
 export interface ApprovalEvent {
   id: string;
   change_order_id: string;

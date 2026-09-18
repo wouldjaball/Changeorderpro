@@ -8,6 +8,7 @@ import { formatCurrency, formatAbsoluteDate } from "@/lib/admin/helpers";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AdminPdfButton } from "./admin-pdf-button";
+import { getClientNotes, latestClientResponse } from "@/lib/approval-notes";
 
 function statusColor(status: string): string {
   switch (status) {
@@ -56,6 +57,10 @@ export default async function AdminChangeOrderDetailPage({ params }: PageProps) 
   const co = await getChangeOrderDetail(coId);
 
   if (!co) notFound();
+
+  const clientResponse = latestClientResponse(co.approval_events);
+  const declineNotes =
+    clientResponse?.action === "declined" ? clientResponse.notes : null;
 
   return (
     <div className="space-y-6">
@@ -136,6 +141,11 @@ export default async function AdminChangeOrderDetailPage({ params }: PageProps) 
               <div>
                 <p className="text-muted-foreground">Declined</p>
                 <p className="font-medium">{formatAbsoluteDate(co.declined_at)}</p>
+                {declineNotes && (
+                  <p className="text-sm italic text-red-700 whitespace-pre-wrap mt-1">
+                    &ldquo;{declineNotes}&rdquo;
+                  </p>
+                )}
               </div>
             )}
             {co.edit_count > 0 && (
@@ -240,24 +250,32 @@ export default async function AdminChangeOrderDetailPage({ params }: PageProps) 
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {co.approval_events.map((evt) => (
-                <div key={evt.id} className="flex items-start gap-3 text-sm">
-                  <Badge variant="outline" className="capitalize shrink-0">
-                    {actionLabel(evt.action)}
-                  </Badge>
-                  <div className="flex-1">
-                    {evt.client_name_typed && (
-                      <span className="font-medium">Signed by: {evt.client_name_typed}</span>
-                    )}
-                    {evt.method && (
-                      <span className="text-muted-foreground ml-2">via {evt.method}</span>
-                    )}
+              {co.approval_events.map((evt) => {
+                const eventNotes = getClientNotes(evt);
+                return (
+                  <div key={evt.id} className="flex items-start gap-3 text-sm">
+                    <Badge variant="outline" className="capitalize shrink-0">
+                      {actionLabel(evt.action)}
+                    </Badge>
+                    <div className="flex-1">
+                      {evt.client_name_typed && (
+                        <span className="font-medium">Signed by: {evt.client_name_typed}</span>
+                      )}
+                      {evt.method && (
+                        <span className="text-muted-foreground ml-2">via {evt.method}</span>
+                      )}
+                      {eventNotes && (
+                        <p className="italic text-muted-foreground whitespace-pre-wrap mt-1">
+                          &ldquo;{eventNotes}&rdquo;
+                        </p>
+                      )}
+                    </div>
+                    <span className="text-muted-foreground shrink-0">
+                      {formatAbsoluteDate(evt.created_at)}
+                    </span>
                   </div>
-                  <span className="text-muted-foreground shrink-0">
-                    {formatAbsoluteDate(evt.created_at)}
-                  </span>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </CardContent>
         </Card>

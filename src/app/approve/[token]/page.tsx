@@ -249,6 +249,7 @@ export default async function ApprovalPage({
           token={token}
           coNumber={co.co_number}
           amount={amount}
+          companyName={company?.name}
           backHref={backHref}
         />
 

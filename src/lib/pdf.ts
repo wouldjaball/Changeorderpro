@@ -17,6 +17,7 @@ import type {
   ApprovalEvent,
 } from "@/types";
 import { formatPhone } from "@/lib/utils";
+import { getClientNotes } from "@/lib/approval-notes";
 
 // ==========================================
 // Styles
@@ -319,6 +320,7 @@ function CODocument({
   const approvalEvent = approvalEvents.find(
     (e) => e.action === "approved" || e.action === "declined"
   );
+  const clientNotes = approvalEvent ? getClientNotes(approvalEvent) : null;
   const companyAddress = [
     company.address_street,
     company.address_city &&
@@ -598,6 +600,13 @@ function CODocument({
                   `Signed by: ${approvalEvent.client_name_typed}`
                 )
               : null,
+            clientNotes
+              ? React.createElement(
+                  Text,
+                  { style: styles.approvalDetail },
+                  `Client note: ${clientNotes}`
+                )
+              : null,
             approvalEvent.ip_address
               ? React.createElement(
                   Text,
@@ -621,7 +630,14 @@ function CODocument({
               Text,
               { style: styles.approvalDetail },
               `Method: ${approvalEvent.method || "link"}`
-            )
+            ),
+            clientNotes
+              ? React.createElement(
+                  Text,
+                  { style: styles.approvalDetail },
+                  `Client note: ${clientNotes}`
+                )
+              : null
           )
         : null,
 

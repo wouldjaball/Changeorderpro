@@ -10,6 +10,10 @@ import { AddEmailInline } from "@/components/projects/add-email-inline";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { CsvExportButton } from "@/components/co/csv-export-button";
+import {
+  latestClientResponse,
+  type ApprovalEventLike,
+} from "@/lib/approval-notes";
 
 export const metadata: Metadata = {
   title: "Project Details",
@@ -35,9 +39,11 @@ export default async function ProjectDetailPage({
 
   const { data: changeOrders } = await supabase
     .from("change_orders")
-    .select("*")
+    .select("*, approval_events(action, metadata, created_at)")
     .eq("project_id", id)
-    .order("created_at", { ascending: false });
+    .eq("company_id", project.company_id)
+    .order("created_at", { ascending: false })
+    .limit(200);
 
   const totalApproved =
     changeOrders
@@ -161,13 +167,20 @@ export default async function ProjectDetailPage({
             </p>
           ) : (
             <div className="space-y-2">
-              {changeOrders.map((co) => (
+              {changeOrders.map((co) => {
+                const declineNotes =
+                  co.status === "declined"
+                    ? latestClientResponse(
+                        (co.approval_events as ApprovalEventLike[]) || []
+                      )?.notes || null
+                    : null;
+                return (
                 <Link
                   key={co.id}
                   href={`/change-orders/${co.id}`}
                   className="flex items-center justify-between p-3 rounded-lg border hover:bg-accent transition-colors"
                 >
-                  <div>
+                  <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
                       <span className="font-mono text-sm text-muted-foreground">
                         {co.co_number}
@@ -179,16 +192,24 @@ export default async function ProjectDetailPage({
                         {co.status}
                       </Badge>
                     </div>
-                    <p className="font-medium text-base mt-0.5">{co.title}</p>
+                    <p className="font-medium text-base mt-0.5 truncate">
+                      {co.title}
+                    </p>
+                    {declineNotes && (
+                      <p className="text-sm text-muted-foreground truncate">
+                        Client: {declineNotes}
+                      </p>
+                    )}
                   </div>
-                  <p className="font-semibold text-base">
+                  <p className="font-semibold text-base ml-3">
                     $
                     {Number(
                       co.total_amount || co.fixed_amount || 0
                     ).toLocaleString()}
                   </p>
                 </Link>
-              ))}
+                );
+              })}
             </div>
           )}
         </CardContent>
