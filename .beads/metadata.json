@@ -1,0 +1,7 @@
+{
+  "database": "dolt",
+  "backend": "dolt",
+  "dolt_mode": "embedded",
+  "dolt_database": "ChangeOrderPro",
+  "project_id": "57a6acb9-ab23-472b-9231-420d98d93ca3"
+}
