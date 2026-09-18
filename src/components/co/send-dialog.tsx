@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button, type buttonVariants } from "@/components/ui/button";
 import type { VariantProps } from "class-variance-authority";
@@ -54,13 +54,13 @@ const METHODS: {
     value: "both",
     label: "SMS + Email",
     icon: Zap,
-    description: "Send via both channels for fastest response",
+    description: "Sends the email now and opens your texting app",
   },
   {
     value: "sms",
     label: "SMS Only",
     icon: MessageSquare,
-    description: "Opens your phone's messenger with the link pre-filled",
+    description: "One tap opens your texting app with the message ready to send",
   },
   {
     value: "email",
@@ -80,6 +80,14 @@ function normalizePhoneForSms(phone: string): string {
   const trimmed = phone.trim();
   const digits = trimmed.replace(/[^\d]/g, "");
   return trimmed.startsWith("+") ? `+${digits}` : digits;
+}
+
+function buildSmsHref(phone: string, body: string): string {
+  const isIOS =
+    typeof navigator !== "undefined" &&
+    /iPad|iPhone|iPod/.test(navigator.userAgent);
+  const separator = isIOS ? "&" : "?";
+  return `sms:${normalizePhoneForSms(phone)}${separator}body=${encodeURIComponent(body)}`;
 }
 
 async function copyToClipboard(text: string): Promise<boolean> {
@@ -110,12 +118,13 @@ export function SendDialog({
   const [sendingMethod, setSendingMethod] = useState<ApprovalMethod | null>(
     null
   );
-  const [pendingSms, setPendingSms] = useState<{
-    href: string;
-    emailAlsoSent: boolean;
-    copied: boolean;
+  const [prepared, setPrepared] = useState<{
+    approvalUrl: string;
+    smsBody: string;
   } | null>(null);
-  const [needsRefresh, setNeedsRefresh] = useState(false);
+  const [preparing, setPreparing] = useState(false);
+  const [prepareError, setPrepareError] = useState<string | null>(null);
+  const needsRefresh = useRef(false);
   const [phone, setPhone] = useState(clientPhone || "");
   const [editingPhone, setEditingPhone] = useState(false);
   const [phoneDraft, setPhoneDraft] = useState("");
@@ -129,6 +138,51 @@ export function SendDialog({
     if (e && !allEmails.includes(e)) allEmails.push(e);
   }
   const canEmail = allEmails.length > 0;
+
+  useEffect(() => {
+    if (!open) {
+      setPrepared(null);
+      setPrepareError(null);
+      setPreparing(false);
+      return;
+    }
+
+    let cancelled = false;
+    setPreparing(true);
+    setPrepareError(null);
+
+    (async () => {
+      try {
+        const res = await fetch(`/api/co/${changeOrderId}/prepare-send`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+        });
+        const data = await res.json();
+
+        if (cancelled) return;
+
+        if (!res.ok) {
+          setPrepareError(data.error || "Could not prepare the approval link");
+          return;
+        }
+
+        setPrepared({ approvalUrl: data.approvalUrl, smsBody: data.smsBody });
+      } catch {
+        if (!cancelled) {
+          setPrepareError("Network error — close and reopen to try again");
+        }
+      } finally {
+        if (!cancelled) setPreparing(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [open, changeOrderId]);
+
+  const smsHref =
+    prepared && phone ? buildSmsHref(phone, prepared.smsBody) : null;
 
   async function handleSavePhone(e: React.FormEvent) {
     e.preventDefault();
@@ -157,16 +211,43 @@ export function SendDialog({
     setEditingPhone(false);
     setPhoneDraft("");
     setSavingPhone(false);
-    setNeedsRefresh(true);
+    needsRefresh.current = true;
     toast.success("Cell phone saved to project");
   }
 
-  async function handleSend(method: ApprovalMethod) {
-    // Validate we can send via this method
-    if ((method === "sms" || method === "both") && !canSMS) {
-      toast.error("Client phone number is required for SMS");
-      return;
+  async function commitSend(method: ApprovalMethod) {
+    setSendingMethod(method);
+
+    try {
+      const res = await fetch("/api/co/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ changeOrderId, method }),
+        keepalive: true,
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        toast.error(data.error || "Failed to send change order");
+        setSendingMethod(null);
+        return;
+      }
+
+      toast.success(
+        method === "both"
+          ? "Email sent. Text is ready in Messages"
+          : "Text is ready in Messages"
+      );
+      needsRefresh.current = true;
+      handleOpenChange(false);
+    } catch {
+      toast.error("Network error — please try again");
+      setSendingMethod(null);
     }
+  }
+
+  async function handleSend(method: ApprovalMethod) {
     if ((method === "email" || method === "both") && !canEmail) {
       toast.error("Client email is required for email");
       return;
@@ -192,35 +273,7 @@ export function SendDialog({
         return;
       }
 
-      // If SMS is part of the method, hand off to the contractor's own phone —
-      // copy the message so it can be pasted, and let them open their texting app.
-      // A JS-triggered navigation to a custom scheme (sms:) after this async
-      // fetch reliably fails on iOS Safari and often on desktop Chrome too, since
-      // the browser no longer treats it as tied to the original tap/click — so we
-      // surface a real button instead of auto-navigating, giving the user a fresh
-      // gesture to trigger the handoff.
-      if ((method === "sms" || method === "both") && data.smsBody && data.clientPhone) {
-        const copied = await copyToClipboard(data.smsBody);
-        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-        const separator = isIOS ? "&" : "?";
-        const smsHref = `sms:${normalizePhoneForSms(data.clientPhone)}${separator}body=${encodeURIComponent(data.smsBody)}`;
-        toast.success(
-          method === "both"
-            ? copied
-              ? "Email sent. Message copied — tap below to open your texting app."
-              : "Email sent. Tap below to open your texting app."
-            : copied
-              ? "Message copied — tap below to open your texting app."
-              : "Tap below to open your texting app."
-        );
-        setPendingSms({
-          href: smsHref,
-          emailAlsoSent: method === "both",
-          copied,
-        });
-        setNeedsRefresh(true);
-        return;
-      } else if (method === "link" && data.approvalUrl) {
+      if (method === "link" && data.approvalUrl) {
         const copied = await copyToClipboard(data.approvalUrl);
         toast.success(
           copied
@@ -243,10 +296,9 @@ export function SendDialog({
   function handleOpenChange(next: boolean) {
     setOpen(next);
     if (!next) {
-      setPendingSms(null);
       setSendingMethod(null);
-      if (needsRefresh) {
-        setNeedsRefresh(false);
+      if (needsRefresh.current) {
+        needsRefresh.current = false;
         router.refresh();
       }
     }
@@ -271,199 +323,204 @@ export function SendDialog({
           </DialogDescription>
         </DialogHeader>
 
-        {pendingSms ? (
-          <>
-            <div className="space-y-3 py-2">
-              <div className="rounded-lg border p-3 text-base space-y-1">
-                {pendingSms.emailAlsoSent && (
-                  <p className="text-muted-foreground">
-                    Email sent to {clientName || "the client"}.
-                  </p>
-                )}
-                <p>
-                  {pendingSms.copied
-                    ? "Message copied to your clipboard. Tap below to open your texting app with it pre-filled."
-                    : "Tap below to open your texting app with the message pre-filled."}
-                </p>
-              </div>
-            </div>
-            <div className="flex gap-2 pt-2">
-              <Button
-                variant="outline"
-                className="flex-1"
-                onClick={() => handleOpenChange(false)}
+        <div className="space-y-4 py-2">
+          {/* Contact info summary */}
+          <div className="rounded-lg border p-3 text-base space-y-1">
+            {clientName && (
+              <p>
+                <span className="text-muted-foreground">To: </span>
+                <span className="font-medium">{clientName}</span>
+              </p>
+            )}
+            {editingPhone ? (
+              <form
+                onSubmit={handleSavePhone}
+                className="flex items-center gap-2"
               >
-                Done
-              </Button>
-              <Button
-                className="flex-1"
-                nativeButton={false}
-                render={<a href={pendingSms.href} />}
-                onClick={() => handleOpenChange(false)}
-              >
-                <MessageSquare className="mr-2 h-4 w-4" />
-                Open Messages
-              </Button>
-            </div>
-          </>
-        ) : (
-          <>
-            <div className="space-y-4 py-2">
-              {/* Contact info summary */}
-              <div className="rounded-lg border p-3 text-base space-y-1">
-                {clientName && (
-                  <p>
-                    <span className="text-muted-foreground">To: </span>
-                    <span className="font-medium">{clientName}</span>
-                  </p>
-                )}
-                {editingPhone ? (
-                  <form
-                    onSubmit={handleSavePhone}
-                    className="flex items-center gap-2"
-                  >
-                    <Phone className="h-4 w-4 shrink-0 text-muted-foreground" />
-                    <Input
-                      type="tel"
-                      inputMode="tel"
-                      autoComplete="tel"
-                      placeholder="Client cell phone"
-                      value={phoneDraft}
-                      onChange={(e) => setPhoneDraft(e.target.value)}
-                      className="h-9 text-base"
-                      autoFocus
-                      required
-                    />
-                    <Button
-                      type="submit"
-                      size="sm"
-                      className="h-9 px-3"
-                      disabled={savingPhone}
-                    >
-                      {savingPhone ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <Check className="h-4 w-4" />
-                      )}
-                    </Button>
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="ghost"
-                      className="h-9 px-2"
-                      onClick={() => {
-                        setEditingPhone(false);
-                        setPhoneDraft("");
-                      }}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </form>
-                ) : phone ? (
-                  <p className="flex items-center gap-2">
-                    <span className="text-muted-foreground">Phone: </span>
-                    <a href={`tel:${phone}`} className="hover:underline">
-                      {phone}
-                    </a>
-                    {canEditPhone && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setPhoneDraft(phone);
-                          setEditingPhone(true);
-                        }}
-                        className="ml-auto text-sm text-muted-foreground hover:text-foreground"
-                      >
-                        Change
-                      </button>
-                    )}
-                  </p>
-                ) : canEditPhone ? (
+                <Phone className="h-4 w-4 shrink-0 text-muted-foreground" />
+                <Input
+                  type="tel"
+                  inputMode="tel"
+                  autoComplete="tel"
+                  placeholder="Client cell phone"
+                  value={phoneDraft}
+                  onChange={(e) => setPhoneDraft(e.target.value)}
+                  className="h-9 text-base"
+                  autoFocus
+                  required
+                />
+                <Button
+                  type="submit"
+                  size="sm"
+                  className="h-9 px-3"
+                  disabled={savingPhone}
+                >
+                  {savingPhone ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Check className="h-4 w-4" />
+                  )}
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  className="h-9 px-2"
+                  onClick={() => {
+                    setEditingPhone(false);
+                    setPhoneDraft("");
+                  }}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </form>
+            ) : phone ? (
+              <p className="flex items-center gap-2">
+                <span className="text-muted-foreground">Phone: </span>
+                <a href={`tel:${phone}`} className="hover:underline">
+                  {phone}
+                </a>
+                {canEditPhone && (
                   <button
                     type="button"
-                    onClick={() => setEditingPhone(true)}
-                    className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                    onClick={() => {
+                      setPhoneDraft(phone);
+                      setEditingPhone(true);
+                    }}
+                    className="ml-auto text-sm text-muted-foreground hover:text-foreground"
                   >
-                    <Phone className="h-4 w-4" />
-                    Add client cell phone for SMS
+                    Change
                   </button>
-                ) : null}
-                {allEmails.length > 0 && (
-                  <div>
-                    <span className="text-muted-foreground">Email: </span>
-                    {allEmails.map((e, i) => (
-                      <span key={e}>
-                        {i > 0 && ", "}
-                        {e}
-                      </span>
-                    ))}
-                  </div>
                 )}
-                {!phone && !canEmail && (
-                  <p className="text-destructive">
-                    No contact info — add a client cell phone above or an email
-                    on the project
-                  </p>
-                )}
-              </div>
-
-              {/* Method selection — tapping one sends immediately */}
-              <div className="space-y-2">
-                <Label>Delivery method</Label>
-                <div className="grid gap-2">
-                  {METHODS.map((m) => {
-                    const Icon = m.icon;
-                    const disabled =
-                      (m.value === "sms" && !canSMS) ||
-                      (m.value === "email" && !canEmail) ||
-                      (m.value === "both" && (!canSMS || !canEmail)) ||
-                      (sendingMethod !== null && sendingMethod !== m.value);
-                    const isSending = sendingMethod === m.value;
-
-                    return (
-                      <button
-                        key={m.value}
-                        type="button"
-                        disabled={disabled}
-                        onClick={() => handleSend(m.value)}
-                        className={cn(
-                          "flex items-center gap-3 rounded-lg border p-3 text-left transition-colors",
-                          isSending
-                            ? "border-primary bg-primary/5"
-                            : "hover:bg-accent",
-                          disabled && "opacity-50 cursor-not-allowed"
-                        )}
-                      >
-                        {isSending ? (
-                          <Loader2 className="h-5 w-5 shrink-0 animate-spin text-primary" />
-                        ) : (
-                          <Icon className="h-5 w-5 shrink-0 text-muted-foreground" />
-                        )}
-                        <div>
-                          <p className="text-base font-medium">{m.label}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {m.description}
-                          </p>
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-
-            <div className="flex gap-2 pt-2">
-              <Button
-                variant="outline"
-                className="flex-1"
-                onClick={() => handleOpenChange(false)}
-                disabled={sendingMethod !== null}
+              </p>
+            ) : canEditPhone ? (
+              <button
+                type="button"
+                onClick={() => setEditingPhone(true)}
+                className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
               >
-                Cancel
-              </Button>
+                <Phone className="h-4 w-4" />
+                Add client cell phone for SMS
+              </button>
+            ) : null}
+            {allEmails.length > 0 && (
+              <div>
+                <span className="text-muted-foreground">Email: </span>
+                {allEmails.map((e, i) => (
+                  <span key={e}>
+                    {i > 0 && ", "}
+                    {e}
+                  </span>
+                ))}
+              </div>
+            )}
+            {!phone && !canEmail && (
+              <p className="text-destructive">
+                No contact info — add a client cell phone above or an email
+                on the project
+              </p>
+            )}
+          </div>
+
+          {/* Method selection — tapping one sends immediately */}
+          <div className="space-y-2">
+            <Label>Delivery method</Label>
+            {prepareError && (
+              <p className="text-sm text-destructive">{prepareError}</p>
+            )}
+            <div className="grid gap-2">
+              {METHODS.map((m) => {
+                const Icon = m.icon;
+                const isSmsMethod = m.value === "sms" || m.value === "both";
+                const isSending = sendingMethod === m.value;
+                const tileClassName = (disabled: boolean) =>
+                  cn(
+                    "flex items-center gap-3 rounded-lg border p-3 text-left transition-colors",
+                    isSending
+                      ? "border-primary bg-primary/5"
+                      : "hover:bg-accent",
+                    disabled && "opacity-50 cursor-not-allowed"
+                  );
+                const showSpinner =
+                  isSending || (isSmsMethod && preparing && !isSending);
+                const body = (
+                  <>
+                    {showSpinner ? (
+                      <Loader2 className="h-5 w-5 shrink-0 animate-spin text-primary" />
+                    ) : (
+                      <Icon className="h-5 w-5 shrink-0 text-muted-foreground" />
+                    )}
+                    <div>
+                      <p className="text-base font-medium">{m.label}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {m.description}
+                      </p>
+                    </div>
+                  </>
+                );
+
+                if (isSmsMethod) {
+                  const enabled =
+                    canSMS &&
+                    !!smsHref &&
+                    sendingMethod === null &&
+                    (m.value === "both" ? canEmail : true);
+
+                  if (enabled) {
+                    return (
+                      <a
+                        key={m.value}
+                        href={smsHref}
+                        onClick={() => commitSend(m.value)}
+                        className={tileClassName(false)}
+                      >
+                        {body}
+                      </a>
+                    );
+                  }
+
+                  return (
+                    <button
+                      key={m.value}
+                      type="button"
+                      disabled
+                      className={tileClassName(true)}
+                    >
+                      {body}
+                    </button>
+                  );
+                }
+
+                const disabled =
+                  (m.value === "email" && !canEmail) ||
+                  (sendingMethod !== null && sendingMethod !== m.value);
+
+                return (
+                  <button
+                    key={m.value}
+                    type="button"
+                    disabled={disabled}
+                    onClick={() => handleSend(m.value)}
+                    className={tileClassName(disabled)}
+                  >
+                    {body}
+                  </button>
+                );
+              })}
             </div>
-          </>
-        )}
+          </div>
+        </div>
+
+        <div className="flex gap-2 pt-2">
+          <Button
+            variant="outline"
+            className="flex-1"
+            onClick={() => handleOpenChange(false)}
+            disabled={sendingMethod !== null}
+          >
+            Cancel
+          </Button>
+        </div>
       </DialogContent>
     </Dialog>
   );

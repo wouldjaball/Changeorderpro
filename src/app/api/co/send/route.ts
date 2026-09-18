@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { generateApprovalToken, freshExpiry } from "@/lib/tokens";
-import { smsApprovalRequest, smsTMApprovalRequest } from "@/lib/sms";
+import { smsApprovalRequest } from "@/lib/sms";
 import { sendEmail, emailApprovalRequest } from "@/lib/resend";
 
 export async function POST(request: NextRequest) {
@@ -64,29 +64,23 @@ export async function POST(request: NextRequest) {
     .eq("id", co.company_id)
     .single();
 
-  const laborRate = Number(company?.settings?.default_labor_rate);
-  const hourlyRate =
-    Number.isFinite(laborRate) && laborRate > 0
-      ? laborRate.toLocaleString(undefined, { minimumFractionDigits: 2 })
-      : null;
-
   // Fetch photos for email
   const { data: photos } = await supabase
     .from("co_photos")
     .select("annotated_url, original_url")
-    .eq("change_order_id", co.id);
+    .eq("change_order_id", co.id)
+    .limit(1000);
 
   const photoUrls = photos
     ?.map((p) => p.annotated_url || p.original_url)
     .filter(Boolean) as string[] | undefined;
 
-  // Reuse the existing approval token on a resend as long as it's still live —
-  // the client may already have that link in an email or text thread, and
-  // regenerating it on every resend silently breaks any copy they haven't
-  // clicked yet. Only mint a fresh token for a genuinely new send (draft/
-  // declined) or once the previous one has actually expired.
+  // Reuse the existing approval token as long as it's still live — the client
+  // may already have that link in an email or text thread, and regenerating it
+  // silently breaks any copy they haven't clicked yet. The prepare-send route
+  // mints the token before this call, so only mint a fresh one here when there
+  // is none or the previous one has actually expired.
   const existingTokenStillLive =
-    co.status === "sent" &&
     !!co.approval_token &&
     !!co.approval_token_expires_at &&
     new Date(co.approval_token_expires_at) > new Date();
@@ -109,7 +103,8 @@ export async function POST(request: NextRequest) {
       status: "sent",
       sent_at: new Date().toISOString(),
     })
-    .eq("id", co.id);
+    .eq("id", co.id)
+    .eq("company_id", co.company_id);
 
   const amount = Number(co.total_amount || co.fixed_amount || 0).toLocaleString(
     undefined,
@@ -123,25 +118,12 @@ export async function POST(request: NextRequest) {
   // the client opens the contractor's own phone's texting app to actually send it.
   let smsBody: string | undefined;
   if ((method === "sms" || method === "both") && project.client_phone) {
-    smsBody =
-      co.pricing_type === "tm"
-        ? smsTMApprovalRequest({
-            companyName: company?.name || "Your contractor",
-            coNumber: co.co_number,
-            projectName: project.name,
-            coTitle: co.title,
-            amount,
-            rate: hourlyRate,
-            approvalLink: approvalUrl,
-          })
-        : smsApprovalRequest({
-            companyName: company?.name || "Your contractor",
-            coNumber: co.co_number,
-            projectName: project.name,
-            coTitle: co.title,
-            amount,
-            approvalLink: approvalUrl,
-          });
+    smsBody = smsApprovalRequest({
+      companyName: company?.name || "Your contractor",
+      coNumber: co.co_number,
+      coTitle: co.title,
+      approvalLink: approvalUrl,
+    });
 
     notifications.push(
       (async () => {
