@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button, type buttonVariants } from "@/components/ui/button";
 import type { VariantProps } from "class-variance-authority";
 import {
@@ -28,6 +29,8 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
+import { fetchJson } from "@/lib/query/fetch-json";
+import { queryKeys } from "@/lib/query/keys";
 import type { ApprovalMethod } from "@/types";
 
 interface SendDialogProps {
@@ -114,16 +117,11 @@ export function SendDialog({
   triggerClassName,
 }: SendDialogProps) {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
   const [sendingMethod, setSendingMethod] = useState<ApprovalMethod | null>(
     null
   );
-  const [prepared, setPrepared] = useState<{
-    approvalUrl: string;
-    smsBody: string;
-  } | null>(null);
-  const [preparing, setPreparing] = useState(false);
-  const [prepareError, setPrepareError] = useState<string | null>(null);
   const needsRefresh = useRef(false);
   const [phone, setPhone] = useState(clientPhone || "");
   const [editingPhone, setEditingPhone] = useState(false);
@@ -139,47 +137,27 @@ export function SendDialog({
   }
   const canEmail = allEmails.length > 0;
 
-  useEffect(() => {
-    if (!open) {
-      setPrepared(null);
-      setPrepareError(null);
-      setPreparing(false);
-      return;
-    }
-
-    let cancelled = false;
-    setPreparing(true);
-    setPrepareError(null);
-
-    (async () => {
-      try {
-        const res = await fetch(`/api/co/${changeOrderId}/prepare-send`, {
+  const prepareQuery = useQuery({
+    queryKey: queryKeys.co.prepareSend(changeOrderId),
+    queryFn: () =>
+      fetchJson<{ approvalUrl: string; smsBody: string }>(
+        `/api/co/${changeOrderId}/prepare-send`,
+        {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-        });
-        const data = await res.json();
-
-        if (cancelled) return;
-
-        if (!res.ok) {
-          setPrepareError(data.error || "Could not prepare the approval link");
-          return;
         }
+      ),
+    enabled: open,
+    staleTime: 0,
+    gcTime: 0,
+    retry: false,
+  });
 
-        setPrepared({ approvalUrl: data.approvalUrl, smsBody: data.smsBody });
-      } catch {
-        if (!cancelled) {
-          setPrepareError("Network error — close and reopen to try again");
-        }
-      } finally {
-        if (!cancelled) setPreparing(false);
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [open, changeOrderId]);
+  const prepared = prepareQuery.data ?? null;
+  const preparing = open && prepareQuery.isFetching;
+  const prepareError = prepareQuery.error
+    ? prepareQuery.error.message || "Could not prepare the approval link"
+    : null;
 
   const smsHref =
     prepared && phone ? buildSmsHref(phone, prepared.smsBody) : null;
@@ -240,6 +218,7 @@ export function SendDialog({
           : "Text is ready in Messages"
       );
       needsRefresh.current = true;
+      queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all });
       handleOpenChange(false);
     } catch {
       toast.error("Network error — please try again");
@@ -285,6 +264,7 @@ export function SendDialog({
       }
 
       setOpen(false);
+      queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all });
       router.refresh();
     } catch {
       toast.error("Network error — please try again");

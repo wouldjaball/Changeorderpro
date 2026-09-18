@@ -60,33 +60,39 @@ export default async function ChangeOrderDetailPage({
 
   if (error || !co) notFound();
 
-  const { data: lineItems } = await supabase
-    .from("co_line_items")
-    .select("*")
-    .eq("change_order_id", id)
-    .order("sort_order");
-
-  const { data: photos } = await supabase
-    .from("co_photos")
-    .select("*")
-    .eq("change_order_id", id)
-    .order("sort_order");
-
-  const { data: approvalEvents } = await supabase
-    .from("approval_events")
-    .select("*")
-    .eq("change_order_id", id)
-    .order("created_at", { ascending: false })
-    .limit(100);
-
-  const { data: editHistory } = await supabase
-    .from("audit_log")
-    .select("*, editor:users!audit_log_user_id_fkey(full_name)")
-    .eq("table_name", "change_orders")
-    .eq("record_id", id)
-    .eq("action", "edited")
-    .order("created_at", { ascending: false })
-    .limit(20);
+  const [
+    { data: lineItems },
+    { data: photos },
+    { data: approvalEvents },
+    { data: editHistory },
+  ] = await Promise.all([
+    supabase
+      .from("co_line_items")
+      .select("*")
+      .eq("change_order_id", id)
+      .order("sort_order")
+      .limit(200),
+    supabase
+      .from("co_photos")
+      .select("*")
+      .eq("change_order_id", id)
+      .order("sort_order")
+      .limit(200),
+    supabase
+      .from("approval_events")
+      .select("*")
+      .eq("change_order_id", id)
+      .order("created_at", { ascending: false })
+      .limit(100),
+    supabase
+      .from("audit_log")
+      .select("*, editor:users!audit_log_user_id_fkey(full_name)")
+      .eq("table_name", "change_orders")
+      .eq("record_id", id)
+      .eq("action", "edited")
+      .order("created_at", { ascending: false })
+      .limit(20),
+  ]);
 
   const project = co.project && !Array.isArray(co.project) ? co.project : null;
   const clientResponse = latestClientResponse(approvalEvents || []);
