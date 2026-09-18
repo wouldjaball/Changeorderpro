@@ -173,6 +173,7 @@ export function DashboardClient({ companyId, projects }: DashboardClientProps) {
             <Link
               key={stat.label}
               href={statHref(stat.next)}
+              prefetch={false}
               onClick={(e) => {
                 if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
                 e.preventDefault();
