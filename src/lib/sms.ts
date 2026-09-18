@@ -13,7 +13,10 @@ export function smsApprovalRequest(params: {
   coTitle: string;
   approvalLink: string;
 }): string {
-  return `${params.companyName} is sending you a change order for approval.\n\nCO #${params.coNumber}: ${params.coTitle}\n\nPlease open the link to review, then approve or decline:\n${params.approvalLink}`;
+  const companyName = params.companyName.trim();
+  const coNumber = params.coNumber.trim();
+  const coLabel = /^co[-\s#]/i.test(coNumber) ? coNumber : `CO #${coNumber}`;
+  return `${companyName} is sending you a change order for approval.\n\n${coLabel}: ${params.coTitle.trim()}\n\nPlease open the link to review, then approve or decline:\n${params.approvalLink}`;
 }
 
 export function smsReminder(params: {
