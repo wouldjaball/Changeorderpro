@@ -2,9 +2,11 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Banknote, Archive, Loader2 } from "lucide-react";
+import { queryKeys } from "@/lib/query/keys";
 import type { COStatus } from "@/types";
 
 interface COStatusActionsProps {
@@ -14,6 +16,7 @@ interface COStatusActionsProps {
 
 export function COStatusActions({ changeOrderId, status }: COStatusActionsProps) {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [loading, setLoading] = useState<COStatus | null>(null);
 
   const canMarkPaid = status === "approved" || status === "invoiced";
@@ -37,6 +40,7 @@ export function COStatusActions({ changeOrderId, status }: COStatusActionsProps)
       toast.success(
         nextStatus === "paid" ? "Marked as paid" : "Change order archived"
       );
+      queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all });
       router.refresh();
     } catch {
       toast.error("Network error — please try again");
