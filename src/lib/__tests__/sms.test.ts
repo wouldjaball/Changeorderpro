@@ -28,6 +28,22 @@ describe("smsApprovalRequest", () => {
     expect(body.endsWith(params.approvalLink)).toBe(true);
   });
 
+  it("does not double the CO prefix when the number already has one", () => {
+    const body = smsApprovalRequest({ ...params, coNumber: "CO-002" });
+    expect(body).toContain("CO-002: Relocate kitchen island plumbing");
+    expect(body).not.toContain("CO #CO-002");
+  });
+
+  it("trims stray whitespace in the company name and title", () => {
+    const body = smsApprovalRequest({
+      ...params,
+      companyName: "Ridgeline Builders ",
+      coTitle: " Relocate kitchen island plumbing ",
+    });
+    expect(body).toContain("Ridgeline Builders is sending");
+    expect(body).toContain("CO #014: Relocate kitchen island plumbing\n");
+  });
+
   it("contains no pricing", () => {
     const body = smsApprovalRequest(params);
     expect(body).not.toContain("$");
