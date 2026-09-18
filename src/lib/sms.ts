@@ -10,27 +10,10 @@
 export function smsApprovalRequest(params: {
   companyName: string;
   coNumber: string;
-  projectName: string;
   coTitle: string;
-  amount: string;
   approvalLink: string;
 }): string {
-  return `${params.companyName} sent you Change Order #${params.coNumber} for ${params.projectName}: ${params.coTitle} — $${params.amount}. Review & approve: ${params.approvalLink}`;
-}
-
-export function smsTMApprovalRequest(params: {
-  companyName: string;
-  coNumber: string;
-  projectName: string;
-  coTitle: string;
-  amount: string;
-  rate?: string | null;
-  approvalLink: string;
-}): string {
-  const pricing = params.rate
-    ? `Est. $${params.amount} at $${params.rate}/hr + materials`
-    : `Est. $${params.amount}, time & materials`;
-  return `${params.companyName} sent you Change Order #${params.coNumber} for ${params.projectName}: ${params.coTitle} — ${pricing}. Final invoice reflects actual hours. Review & approve: ${params.approvalLink}`;
+  return `${params.companyName} is sending you a change order for approval.\n\nCO #${params.coNumber}: ${params.coTitle}\n\nPlease open the link to review, then approve or decline:\n${params.approvalLink}`;
 }
 
 export function smsReminder(params: {
