@@ -18,8 +18,8 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "ChangeOrder Pro",
-    template: "%s | ChangeOrder Pro",
+    default: "Change Order Pros",
+    template: "%s | Change Order Pros",
   },
   description:
     "Create, send, and document client-approved change orders in under 60 seconds.",

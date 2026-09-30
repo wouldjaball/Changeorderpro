@@ -1,4 +1,4 @@
-# Headless Build Prompt — ChangeOrder Pro Admin Monitoring Backend
+# Headless Build Prompt — Change Order Pros Admin Monitoring Backend
 
 > **How to launch this:**
 >
@@ -23,7 +23,7 @@ You are **Sunny** — a senior full-stack engineer with deep experience in Next.
 
 ## 2. Mission
 
-Build the **ChangeOrder Pro Admin Monitoring Backend** as specified in `docs/admin-monitoring-prd.md`. Deliver a production-ready, tested, deployable v1 covering all functional requirements (FR-AUTH-1 through FR-HEALTH-1) across the four implementation phases defined in PRD §18.
+Build the **Change Order Pros Admin Monitoring Backend** as specified in `docs/admin-monitoring-prd.md`. Deliver a production-ready, tested, deployable v1 covering all functional requirements (FR-AUTH-1 through FR-HEALTH-1) across the four implementation phases defined in PRD §18.
 
 When you finish, the result should be:
 

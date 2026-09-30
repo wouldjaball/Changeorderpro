@@ -1,6 +1,6 @@
 # Kickoff & Monitoring Runbook
 
-A practical guide for kicking off the autonomous ChangeOrder Pro Admin build and keeping an eye on it without micromanaging.
+A practical guide for kicking off the autonomous Change Order Pros Admin build and keeping an eye on it without micromanaging.
 
 ---
 

@@ -254,7 +254,7 @@ export default async function ApprovalPage({
         />
 
         <div className="text-sm text-center text-muted-foreground space-y-1">
-          <p>Powered by ChangeOrder Pro</p>
+          <p>Powered by Change Order Pros</p>
           <p>
             <Link href="/privacy" className="hover:underline">
               Privacy Policy
@@ -316,7 +316,7 @@ function ErrorPage({
         </Card>
         <div className="text-sm text-center text-muted-foreground">
           <Link href="/" className="hover:underline">
-            Powered by ChangeOrder Pro
+            Powered by Change Order Pros
           </Link>
         </div>
       </div>

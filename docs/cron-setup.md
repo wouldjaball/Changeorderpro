@@ -2,7 +2,7 @@
 
 ## Overview
 
-ChangeOrder Pro uses Vercel Cron Jobs for automated reminders and escalation. No external services needed.
+Change Order Pros uses Vercel Cron Jobs for automated reminders and escalation. No external services needed.
 
 ## How It Works
 
