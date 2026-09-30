@@ -60,7 +60,7 @@ export default function AdminLoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 px-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl">ChangeOrder Pro Admin</CardTitle>
+          <CardTitle className="text-2xl">Change Order Pros Admin</CardTitle>
           <CardDescription>
             Enter your admin email to receive a sign-in link
           </CardDescription>

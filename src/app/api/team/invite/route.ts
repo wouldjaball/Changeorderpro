@@ -46,15 +46,15 @@ export async function POST(request: NextRequest) {
   try {
     await sendEmail({
       to: email,
-      subject: `You're invited to join ${company?.name || "a team"} on ChangeOrder Pro`,
+      subject: `You're invited to join ${company?.name || "a team"} on Change Order Pros`,
       html: `
         <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
           <h2>You've been invited!</h2>
-          <p>${company?.name || "A team"} has invited you to join their team on ChangeOrder Pro as a <strong>${role}</strong>.</p>
+          <p>${company?.name || "A team"} has invited you to join their team on Change Order Pros as a <strong>${role}</strong>.</p>
           <div style="text-align: center; margin: 24px 0;">
             <a href="${signupLink}" style="background: #2563eb; color: white; padding: 12px 32px; border-radius: 8px; text-decoration: none; font-weight: bold; display: inline-block;">Accept Invitation</a>
           </div>
-          <p style="color: #666; font-size: 14px;">ChangeOrder Pro helps construction teams manage change orders digitally.</p>
+          <p style="color: #666; font-size: 14px;">Change Order Pros helps construction teams manage change orders digitally.</p>
         </div>
       `,
     });

@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 
 export default function PrivacyPolicyPage() {
   const effectiveDate = "March 17, 2026";
-  const companyName = "ChangeOrder Pro";
+  const companyName = "Change Order Pros";
   const companyEntity = "Sales Monsters LLC";
   const domain = "changeorderpros.com";
   const contactEmail = "support@changeorderpros.com";
@@ -20,7 +20,7 @@ export default function PrivacyPolicyPage() {
           <Link href="/dashboard" className="flex items-center gap-2">
             <Image
               src="/logo.png"
-              alt="ChangeOrder Pro"
+              alt="Change Order Pros"
               width={32}
               height={32}
             />

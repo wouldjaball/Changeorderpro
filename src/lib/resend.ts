@@ -20,7 +20,7 @@ export interface SendEmailParams {
 export async function sendEmail({ to, subject, html, replyTo }: SendEmailParams) {
   const resend = getClient();
   const { data, error } = await resend.emails.send({
-    from: `ChangeOrder Pro <${fromEmail}>`,
+    from: `Change Order Pros <${fromEmail}>`,
     to,
     subject,
     html,
@@ -113,7 +113,7 @@ export function emailApprovalRequest(params: {
     </div>
 
     <p style="font-size: 11px; color: #999; text-align: center; margin-top: 16px;">
-      Sent via ChangeOrder Pro on behalf of ${params.companyName}
+      Sent via Change Order Pros on behalf of ${params.companyName}
     </p>
   </div>
 </body>
@@ -193,7 +193,7 @@ ${notesBlock}
     </div>
 
     <p style="font-size: 11px; color: #999; text-align: center; margin-top: 16px;">
-      Sent via ChangeOrder Pro on behalf of ${params.companyName}
+      Sent via Change Order Pros on behalf of ${params.companyName}
     </p>
   </div>
 </body>

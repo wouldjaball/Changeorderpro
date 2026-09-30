@@ -15,7 +15,7 @@ export function Sidebar({ activePath }: SidebarProps) {
   return (
     <div className="w-60 bg-white border-r h-full flex flex-col shrink-0">
       <div className="p-6 border-b">
-        <h1 className="text-xl font-semibold text-gray-900">ChangeOrder Pro</h1>
+        <h1 className="text-xl font-semibold text-gray-900">Change Order Pros</h1>
         <p className="text-sm text-gray-500 mt-1">Admin</p>
       </div>
       <nav className="flex-1 p-4">

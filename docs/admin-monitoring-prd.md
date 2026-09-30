@@ -1,8 +1,8 @@
-# ChangeOrder Pro — Admin Monitoring Backend
+# Change Order Pros — Admin Monitoring Backend
 
 ## Product Requirements Document
 
-**Version**1.0**Status**Approved for build**Owner**Boss (Sales Monsters)**Author**Sunny**Last updated**April 28, 2026**Audience**Engineering, Product, Internal ops**Repo path**`/admin` route group within main ChangeOrder Pro repo
+**Version**1.0**Status**Approved for build**Owner**Boss (Sales Monsters)**Author**Sunny**Last updated**April 28, 2026**Audience**Engineering, Product, Internal ops**Repo path**`/admin` route group within main Change Order Pros repo
 
 ### Change Log
 
@@ -12,7 +12,7 @@ VersionDateAuthorNotes0.1Apr 28, 2026SunnyInitial draft1.0Apr 28, 2026SunnyOpen 
 
 ## 1. Executive Summary
 
-ChangeOrder Pro is a SaaS product for contractors that streamlines the creation, delivery, and approval of change orders. As paying customers come online, the Sales Monsters team needs a **purpose-built internal admin console** to monitor adoption, usage health, and customer-level activity in one place.
+Change Order Pros is a SaaS product for contractors that streamlines the creation, delivery, and approval of change orders. As paying customers come online, the Sales Monsters team needs a **purpose-built internal admin console** to monitor adoption, usage health, and customer-level activity in one place.
 
 This PRD defines a read-only, internally-authenticated admin web app — built on the existing Next.js + Supabase + Vercel stack — that surfaces:
 
@@ -30,7 +30,7 @@ The console lives at `admin.changeorderpro.com`, gated by Supabase Auth + an ema
 
 ### 2.1 The product
 
-ChangeOrder Pro is a multi-tenant Next.js + Supabase app. Each contractor business is a `company` (tenant); each company has one or more `users`; each company creates `change_orders` and sends them to their own customers via email and/or SMS. SMS is not sent by the platform — it hands the message off to the contractor's own phone to send; transactional email goes through whatever provider the customer-facing app uses (assume Postmark or Resend; not load-bearing for this PRD).
+Change Order Pros is a multi-tenant Next.js + Supabase app. Each contractor business is a `company` (tenant); each company has one or more `users`; each company creates `change_orders` and sends them to their own customers via email and/or SMS. SMS is not sent by the platform — it hands the message off to the contractor's own phone to send; transactional email goes through whatever provider the customer-facing app uses (assume Postmark or Resend; not load-bearing for this PRD).
 
 Stripe handles subscriptions; Stripe webhooks already sync subscription state into Supabase.
 
@@ -786,7 +786,7 @@ Internally, this checks the allowlist and only actually triggers the magic link 
 ### 10.1 Design system
 
 - **Typography:** Inter (system fallback to system-ui)
-- **Color palette:** neutral grays + a single accent color matched to ChangeOrder Pro brand (placeholder: `#0F766E` teal-700, confirm with brand guide)
+- **Color palette:** neutral grays + a single accent color matched to Change Order Pros brand (placeholder: `#0F766E` teal-700, confirm with brand guide)
 - **Spacing scale:** Tailwind defaults
 - **Border radius:** `rounded-lg` (8px) on cards, `rounded-md` (6px) on inputs
 - **Dark mode:** v1 is light-mode only. Dark mode in v2 if requested.
@@ -837,7 +837,7 @@ SurfaceEmpty stateDashboard KPIsShow 0 with no deltaTrend chart"Not enough data 
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────────┐
-│ ☰ ChangeOrder Pro Admin                              boss@salesmonsters ▾    │
+│ ☰ Change Order Pros Admin                            boss@salesmonsters ▾    │
 ├────┬─────────────────────────────────────────────────────────────────────────┤
 │ 🏠 │  Dashboard                          Stats refreshed 4h ago [⟳ Refresh]  │
 │ 🏢 │                                                                         │
@@ -869,7 +869,7 @@ SurfaceEmpty stateDashboard KPIsShow 0 with no deltaTrend chart"Not enough data 
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────────┐
-│ ☰ ChangeOrder Pro Admin                              boss@salesmonsters ▾    │
+│ ☰ Change Order Pros Admin                            boss@salesmonsters ▾    │
 ├────┬─────────────────────────────────────────────────────────────────────────┤
 │ 🏠 │  Companies                                                              │
 │ 🏢 │                                                                         │
@@ -896,7 +896,7 @@ SurfaceEmpty stateDashboard KPIsShow 0 with no deltaTrend chart"Not enough data 
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────────┐
-│ ☰ ChangeOrder Pro Admin                              boss@salesmonsters ▾    │
+│ ☰ Change Order Pros Admin                            boss@salesmonsters ▾    │
 ├────┬─────────────────────────────────────────────────────────────────────────┤
 │ 🏠 │  ← Back to companies                                                    │
 │ 🏢 │                                                                         │
@@ -1078,7 +1078,7 @@ export async function middleware(req: NextRequest) {
 ### 12.4 Compliance notes
 
 - Not subject to HIPAA (contractor industry)
-- Subject to GDPR/CCPA insofar as ChangeOrder Pro customers may be EU/CA residents — admin console respects existing customer-facing data deletion requests (a deleted customer simply disappears from the admin views via cascade).
+- Subject to GDPR/CCPA insofar as Change Order Pros customers may be EU/CA residents — admin console respects existing customer-facing data deletion requests (a deleted customer simply disappears from the admin views via cascade).
 
 ---
 
@@ -1379,11 +1379,11 @@ Open questions from the v0.1 draft, now resolved.
 
 | Term | Definition |
 |------|------------|
-| **Company** | A tenant (contractor business) using ChangeOrder Pro |
+| **Company** | A tenant (contractor business) using Change Order Pros |
 | **Owner** | The user with `role = 'owner'` on a company; usually the original signup |
 | **Change order (CO)** | A document the contractor sends to their customer requesting approval for additional work / cost |
-| **Customer (theirs)** | The end-user receiving a change order — distinct from a ChangeOrder Pro customer |
-| **Customer (ours)** | A company paying for ChangeOrder Pro |
+| **Customer (theirs)** | The end-user receiving a change order — distinct from a Change Order Pros customer |
+| **Customer (ours)** | A company paying for Change Order Pros |
 | **Channel** | The medium a change order is sent through: email, SMS, or both |
 | **Active** | A company with any user activity or change-order activity in the last 30 days |
 | **Dormant** | A company with no activity in the last 14+ days |

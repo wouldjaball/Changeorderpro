@@ -255,7 +255,7 @@ export default function LandingPage() {
               { label: "Change orders you eat per year", value: "~8" },
               { label: "Average value per change order", value: "$650" },
               { label: "Revenue you lose annually", value: "$5,200", color: "text-red-400" },
-              { label: "Change Order Pro (annual)", value: "$468" },
+              { label: "Change Order Pros (annual)", value: "$468" },
             ].map((row) => (
               <div key={row.label} className="flex justify-between items-center py-3 border-b border-white/10">
                 <span className="text-white/80">{row.label}</span>

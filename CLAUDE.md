@@ -1,4 +1,4 @@
-# ChangeOrder Pro — Claude Code Instructions
+# Change Order Pros — Claude Code Instructions
 
 ## Stack
 - Next.js 16 + TypeScript (strict) + Tailwind CSS + shadcn/ui

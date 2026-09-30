@@ -95,7 +95,7 @@ export default function LoginPage() {
       <CardHeader>
         <CardTitle>Sign in</CardTitle>
         <CardDescription>
-          Sign in to your ChangeOrder Pro account
+          Sign in to your Change Order Pros account
         </CardDescription>
       </CardHeader>
       <CardContent>
